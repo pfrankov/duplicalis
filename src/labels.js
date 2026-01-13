@@ -1,7 +1,9 @@
 import { cosine } from './math.js';
+import { getI18n } from './i18n.js';
 
 export function labelPair(entryA, entryB, similarity, config) {
-  const context = buildContext(entryA, entryB, similarity, config);
+  const i18n = getI18n(config?.language);
+  const context = buildContext(entryA, entryB, similarity, config, i18n);
   const labels = [];
   const hints = [];
 
@@ -21,12 +23,13 @@ function runCheck(labels, hints, result) {
   if (result.hint) hints.push(result.hint);
 }
 
-function buildContext(entryA, entryB, similarity, config) {
+function buildContext(entryA, entryB, similarity, config, i18n) {
   return {
     entryA,
     entryB,
     similarity,
     config,
+    i18n,
     logicOverlap: overlap(entryA.component.logicTokens, entryB.component.logicTokens),
     literalOverlap: overlap(entryA.component.literals, entryB.component.literals),
     styleSimilarity: cosine(entryA.styleVec, entryB.styleVec),
@@ -48,7 +51,7 @@ function wrapperCheck(ctx) {
   if (ctx.entryA.component.isWrapper && ctx.entryB.component.isWrapper) {
     return {
       label: 'wrapper-duplicate',
-      hint: 'Both are thin wrappers that mostly forward props.',
+      hint: ctx.i18n.hintWrapper,
     };
   }
   return null;
@@ -66,7 +69,7 @@ function styleCheck(ctx) {
   if (ctx.styleSimilarity >= 0.8) {
     return {
       label: 'style-duplicate',
-      hint: 'Styles are nearly identical; consolidate tokens or mixins.',
+      hint: ctx.i18n.hintStyle,
     };
   }
   return null;
@@ -77,7 +80,7 @@ function logicCheck(ctx) {
   if (ctx.logicOverlap >= 0.6) {
     return {
       label: 'logic-duplicate',
-      hint: 'Logic hooks/handlers are highly similar; consider a shared hook or utility.',
+      hint: ctx.i18n.hintLogic,
     };
   }
   return null;
@@ -88,7 +91,7 @@ function copyCheck(ctx) {
   if (ctx.similarity >= 0.95 || ctx.tokenOverlap >= 0.9) {
     return {
       label: 'copy-paste-variant',
-      hint: 'Very high structural overlap; likely copy-paste with small edits.',
+      hint: ctx.i18n.hintCopy,
     };
   }
   return null;
@@ -100,7 +103,7 @@ function propCheck(ctx) {
   if (highSimilarity && (ctx.literalOverlap >= 0.4 || ctx.hasProps)) {
     return {
       label: 'prop-parameterizable',
-      hint: 'Differences are mostly literal values; consider converting to configurable props.',
+      hint: ctx.i18n.hintProp,
     };
   }
   return null;
@@ -113,7 +116,7 @@ function forkCheck(ctx, labels) {
   if (eligible) {
     return {
       label: 'forked-clone',
-      hint: 'Parallel variants diverged in size; pick a canonical version.',
+      hint: ctx.i18n.hintFork,
     };
   }
   return null;

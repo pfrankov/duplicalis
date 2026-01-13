@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getI18n, resolveLanguage } from './i18n.js';
 
 export const IGNORE_FILE_MARKER = 'duplicalis-ignore-file';
 export const IGNORE_COMPONENT_MARKER = 'duplicalis-ignore-next';
@@ -37,6 +38,7 @@ const DEFAULT_CONFIG = {
   ignoreComponentUsagePatterns: [],
   relativePaths: false,
   minPathDistance: 0,
+  language: 'en',
 };
 
 export function resolveConfigPath(root, configOption) {
@@ -49,9 +51,11 @@ export function resolveConfigPath(root, configOption) {
 export function loadConfig(cliOptions = {}) {
   const root = cliOptions.root ? path.resolve(cliOptions.root) : process.cwd();
   const configPath = resolveConfigPath(root, cliOptions.config);
-  const fileConfig = stripUndefined(readConfigFile(configPath));
+  const cliLanguage = resolveLanguage(cliOptions.language, DEFAULT_CONFIG.language);
+  const fileConfig = stripUndefined(readConfigFile(configPath, cliLanguage));
   const cleanedCli = stripUndefined(cliOptions);
   const merged = { ...DEFAULT_CONFIG, root, ...fileConfig, ...cleanedCli };
+  merged.language = resolveLanguage(merged.language, DEFAULT_CONFIG.language);
   if (!merged.cachePath) {
     merged.cachePath = path.join(root, '.cache', 'duplicalis', 'embeddings.json');
   }
@@ -112,13 +116,14 @@ export function loadConfig(cliOptions = {}) {
   return merged;
 }
 
-function readConfigFile(configPath) {
+function readConfigFile(configPath, language) {
   if (!fs.existsSync(configPath)) return {};
   try {
     const raw = fs.readFileSync(configPath, 'utf8');
     return JSON.parse(raw);
   } catch (error) {
-    throw new Error(`Failed to read config file at ${configPath}: ${error.message}`);
+    const i18n = getI18n(language);
+    throw new Error(`${i18n.errConfigReadPrefix} ${configPath}: ${error.message}`);
   }
 }
 
@@ -188,6 +193,7 @@ const SAVABLE_KEYS = [
   'ignoreComponentUsagePatterns',
   'relativePaths',
   'minPathDistance',
+  'language',
 ];
 
 function pickSavable(config) {

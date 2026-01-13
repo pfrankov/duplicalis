@@ -78,6 +78,7 @@ This will:
 ## ⚙️ Configuration
 
 You can configure `duplicalis` via CLI flags or a `duplicalis.config.json` file.
+Set `language` in the config file to localize console/report output.
 
 ### Common Options
 
@@ -89,6 +90,7 @@ You can configure `duplicalis` via CLI flags or a `duplicalis.config.json` file.
 | `--out <path>` | Save the report to a JSON file. | None |
 | `--compare <globs>` | Only report pairs involving these files (e.g., changed files). | None |
 | `--relative-paths` | Show relative paths in output. | `false` |
+| `--lang <code>` | Output language (`en`, `ru`, `es`, `fr`, `de`, `zh`). | `en` |
 
 ### Advanced Options
 
