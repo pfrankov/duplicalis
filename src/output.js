@@ -4,8 +4,10 @@ import chalk from 'chalk';
 import { highlight } from 'cli-highlight';
 import { banner } from './duplicalis.js';
 import { duplicalisBanner } from './banner-text.js';
+import { getI18n } from './i18n.js';
 
 export function emitReport(entries, pairs = [], config, stats) {
+  const i18n = getI18n(config?.language);
   const components = entries.map((entry) => ({
     id: entry.component.id,
     name: entry.component.name,
@@ -26,19 +28,19 @@ export function emitReport(entries, pairs = [], config, stats) {
       fs.writeFileSync(outPath, JSON.stringify(report, null, 2), 'utf8');
     }
   }
-  printConsole(report, config, outPath, entries);
+  printConsole(report, config, outPath, entries, i18n);
 }
 
-function printConsole(report, config, outPath, entries) {
+function printConsole(report, config, outPath, entries, i18n) {
   printBanner();
   console.log('');
   printTextBanner();
-  const mode = formatMode(config);
-  console.log(chalk.bold('\nDuplicate React component report'));
+  const mode = formatMode(config, i18n);
+  console.log(chalk.bold(`\n${i18n.reportTitle}`));
   console.log(mode);
-  printRunConfig(config, outPath);
-  printMatches(report, config, entries);
-  printStatsTable(report, outPath);
+  printRunConfig(config, outPath, i18n);
+  printMatches(report, config, entries, i18n);
+  printStatsTable(report, outPath, i18n);
 }
 
 /* v8 ignore start */
@@ -56,38 +58,46 @@ function relativize(filePath, root, useRelative) {
 /* v8 ignore stop */
 
 /* v8 ignore start */
-function formatMode(config) {
+function formatMode(config, i18n) {
   if (config.model === 'remote') {
-    return `model: remote (${config.remote?.model || ''} @ ${config.remote?.url || 'n/a'})`;
+    const remoteModel = config.remote?.model || i18n.notAvailable;
+    const remoteUrl = config.remote?.url || i18n.notAvailable;
+    return `${i18n.modeLabel}: ${i18n.modeRemoteLabel} (${remoteModel} @ ${remoteUrl})`;
   }
-  if (config.model === 'mock') return 'model: mock (deterministic hashing)';
-  return `model: local (path: ${config.modelPath}, auto-download: ${config.autoDownloadModel ? 'on' : 'off'})`;
+  if (config.model === 'mock') {
+    return `${i18n.modeLabel}: ${i18n.modeMockLabel} (${i18n.modeMockDetail})`;
+  }
+  const autoDownload = config.autoDownloadModel ? i18n.on : i18n.off;
+  return `${i18n.modeLabel}: ${i18n.modeLocalLabel} (${i18n.modePathLabel}: ${config.modelPath}, ${i18n.modeAutoDownloadLabel}: ${autoDownload})`;
 }
 /* v8 ignore stop */
 
-function printRunConfig(config, outPath) {
-  console.log(chalk.bold('Run config'));
-  console.log(`  root: ${config.root}`);
+function printRunConfig(config, outPath, i18n) {
+  console.log(chalk.bold(i18n.runConfigTitle));
+  console.log(`  ${i18n.labelRoot}: ${config.root}`);
   if (config.configPath) {
-    const suffix = config.configSaved ? ' (updated this run)' : '';
-    console.log(`  config: ${config.configPath}${suffix}`);
+    const suffix = config.configSaved ? i18n.configUpdatedSuffix : '';
+    console.log(`  ${i18n.labelConfig}: ${config.configPath}${suffix}`);
   }
-  if (outPath) console.log(`  output: ${outPath}`);
-  console.log(`  cache: ${config.cachePath || 'none'}`);
+  if (outPath) console.log(`  ${i18n.labelOutput}: ${outPath}`);
+  console.log(`  ${i18n.labelCache}: ${config.cachePath || i18n.noneValue}`);
   console.log(
-    `  thresholds: min ${config.similarityThreshold} · high-label ${config.highSimilarityThreshold} · max ${config.maxSimilarityThreshold ?? 1}`
+    `  ${i18n.labelThresholds}: ${i18n.thresholdsMinLabel} ${config.similarityThreshold} · ${i18n.thresholdsHighLabel} ${config.highSimilarityThreshold} · ${i18n.thresholdsMaxLabel} ${config.maxSimilarityThreshold ?? 1}`
   );
   const limitText =
-    typeof config.limit === 'number' && Number.isFinite(config.limit) ? config.limit : 'all';
-  console.log(`  limit: ${limitText}`);
-  console.log(`  include: ${(config.include || []).join(', ') || '—'}`);
-  console.log(`  exclude: ${(config.exclude || []).join(', ') || '—'}`);
+    typeof config.limit === 'number' && Number.isFinite(config.limit)
+      ? config.limit
+      : i18n.allValue;
+  console.log(`  ${i18n.labelLimit}: ${limitText}`);
+  console.log(`  ${i18n.labelInclude}: ${(config.include || []).join(', ') || i18n.noneSymbol}`);
+  console.log(`  ${i18n.labelExclude}: ${(config.exclude || []).join(', ') || i18n.noneSymbol}`);
+  console.log(`  ${i18n.labelLanguage}: ${i18n.lang}`);
 }
 
-function printMatches(report, config, entries) {
-  console.log(chalk.bold('\nTop matches (with snippets):'));
+function printMatches(report, config, entries, i18n) {
+  console.log(chalk.bold(`\n${i18n.topMatchesTitle}`));
   if (!report.pairs.length) {
-    console.log('  none above threshold');
+    console.log(`  ${i18n.noneAboveThreshold}`);
     return;
   }
   const byId = new Map(entries.map((e) => [e.component.id, e]));
@@ -99,20 +109,22 @@ function printMatches(report, config, entries) {
     const right = byId.get(pair.b);
     console.log(`\n${separator}`);
     const number = chalk.black.bgYellow.bold(` ${String(idx + 1).padStart(2, ' ')} `);
-    const title = `${number}  score: ${pair.similarity}`;
+    const title = `${number}  ${i18n.scoreLabel}: ${pair.similarity}`;
     console.log(chalk.bold(chalk.cyan(title)));
-    const tagLine = pair.labels.length ? pair.labels.map((l) => `#${l}`).join('    ') : '—';
+    const tagLine = pair.labels.length
+      ? pair.labels.map((l) => `#${l}`).join('    ')
+      : i18n.noneSymbol;
     console.log(chalk.white(tagLine));
     if (pair.hints?.length) {
       pair.hints.forEach((h) => console.log(chalk.gray(`  - ${h}`)));
     }
-    printSnippetBlock('A', left?.component, config.root, config.relativePaths);
-    printSnippetBlock('B', right?.component, config.root, config.relativePaths);
+    printSnippetBlock('A', left?.component, config.root, config.relativePaths, i18n);
+    printSnippetBlock('B', right?.component, config.root, config.relativePaths, i18n);
   });
   console.log(separator);
 }
 
-function printSnippetBlock(label, component, root, useRelative) {
+function printSnippetBlock(label, component, root, useRelative, i18n) {
   if (!component) return;
   console.log('');
   const displayPath = relativize(component.filePath, root, useRelative);
@@ -121,7 +133,7 @@ function printSnippetBlock(label, component, root, useRelative) {
   console.log(chalk.gray(`    ${displayPath}`));
   const snippet = trimSource(component.source);
   if (!snippet.trim()) {
-    console.log('    [no snippet]');
+    console.log(`    ${i18n.noSnippet}`);
     return;
   }
   const highlighted = applyHighlight(snippet, component.filePath);
@@ -162,28 +174,28 @@ function detectLanguage(filePath) {
 }
 /* v8 ignore stop */
 
-function printStatsTable(report, outPath) {
-  console.log(chalk.bold('\nRun stats'));
-  const rows = buildStatsRows(report);
+function printStatsTable(report, outPath, i18n) {
+  console.log(chalk.bold(`\n${i18n.runStatsTitle}`));
+  const rows = buildStatsRows(report, i18n);
   renderTable(rows);
-  if (outPath) console.log(chalk.dim(`JSON written to ${outPath}`));
+  if (outPath) console.log(chalk.dim(`${i18n.jsonWrittenPrefix} ${outPath}`));
 }
 
-function buildStatsRows(report) {
+function buildStatsRows(report, i18n) {
   const stats = report.stats || {};
   const scorecard = stats.scorecard || {};
   const cache = stats.cache || {};
   const cacheParts = [
-    cache.hits != null ? `hits ${cache.hits}` : null,
-    cache.misses != null ? `misses ${cache.misses}` : null,
-    cache.cleaned != null ? `cleaned ${cache.cleaned}` : null,
-    cache.uncachedCount != null ? `uncached ${cache.uncachedCount}` : null,
+    cache.hits != null ? `${i18n.cacheHits} ${cache.hits}` : null,
+    cache.misses != null ? `${i18n.cacheMisses} ${cache.misses}` : null,
+    cache.cleaned != null ? `${i18n.cacheCleaned} ${cache.cleaned}` : null,
+    cache.uncachedCount != null ? `${i18n.cacheUncached} ${cache.uncachedCount}` : null,
   ].filter(Boolean);
   const timingParts = [
-    stats.scanMs != null ? `scan ${stats.scanMs}ms` : null,
-    stats.parseMs != null ? `parse ${stats.parseMs}ms` : null,
-    stats.embedMs != null ? `embed ${stats.embedMs}ms` : null,
-    stats.similarityMs != null ? `similarity ${stats.similarityMs}ms` : null,
+    stats.scanMs != null ? `${i18n.timingScan} ${stats.scanMs}ms` : null,
+    stats.parseMs != null ? `${i18n.timingParse} ${stats.parseMs}ms` : null,
+    stats.embedMs != null ? `${i18n.timingEmbed} ${stats.embedMs}ms` : null,
+    stats.similarityMs != null ? `${i18n.timingSimilarity} ${stats.similarityMs}ms` : null,
   ].filter(Boolean);
   const pairedCount = countPairedComponents(report.pairs);
   const componentCount = report.components.length;
@@ -191,15 +203,15 @@ function buildStatsRows(report) {
     componentCount === 0 ? 0 : Math.round((pairedCount / componentCount) * 100);
   return [
     {
-      label: 'match coverage',
+      label: i18n.statsMatchCoverage,
       value: `${pairedCount}/${componentCount} (${coveragePercent}%)`,
       emphasis: true,
     },
-    { label: 'pairs reported', value: report.pairs.length },
-    { label: 'pairs suppressed', value: formatSuppression(scorecard) },
-    { label: 'components scanned', value: componentCount },
-    { label: 'timings (ms)', value: timingParts.join(' | ') || 'n/a' },
-    { label: 'cache', value: cacheParts.join(' | ') || 'n/a' },
+    { label: i18n.statsPairsReported, value: report.pairs.length },
+    { label: i18n.statsPairsSuppressed, value: formatSuppression(scorecard, i18n) },
+    { label: i18n.statsComponentsScanned, value: componentCount },
+    { label: i18n.statsTimings, value: timingParts.join(' | ') || i18n.notAvailable },
+    { label: i18n.statsCache, value: cacheParts.join(' | ') || i18n.notAvailable },
   ];
 }
 
@@ -227,8 +239,8 @@ function renderTable(rows) {
   console.log(chalk.dim(bottom));
 }
 
-function formatSuppression(scorecard) {
-  if (!scorecard || typeof scorecard.suppressedPairs !== 'number') return 'n/a';
+function formatSuppression(scorecard, i18n) {
+  if (!scorecard || typeof scorecard.suppressedPairs !== 'number') return i18n.notAvailable;
   if (scorecard.suppressedPairs === 0) return '0';
   const reasons = scorecard.suppressionReasons || {};
   const parts = Object.entries(reasons)

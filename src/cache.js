@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { encode, decode } from 'msgpackr';
+import { getI18n } from './i18n.js';
 
 const CACHE_VERSION = 1;
 
-export function loadCache(cachePath) {
+export function loadCache(cachePath, language) {
   if (!cachePath) return { version: CACHE_VERSION, entries: {} };
   if (!fs.existsSync(cachePath)) return { version: CACHE_VERSION, entries: {} };
   try {
@@ -21,7 +22,8 @@ export function loadCache(cachePath) {
     }
     return parsed;
   } catch (error) {
-    console.warn(`Failed to read cache at ${cachePath}: ${error.message}`);
+    const i18n = getI18n(language);
+    console.warn(`${i18n.errCacheReadPrefix} ${cachePath}: ${error.message}`);
     return { version: CACHE_VERSION, entries: {} };
   }
 }

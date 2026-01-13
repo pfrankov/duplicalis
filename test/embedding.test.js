@@ -147,6 +147,7 @@ describe('embeddings', () => {
       path.resolve('models/all-MiniLM-L6-v2'),
       'https://example.com/model',
       true,
+      'en',
     );
     ensureSpy.mockRestore();
   });

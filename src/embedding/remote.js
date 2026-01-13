@@ -1,11 +1,15 @@
+import { getI18n, resolveLanguage } from '../i18n.js';
+
 export class RemoteEmbeddingBackend {
   constructor(config) {
     this.url = config.url;
     this.apiKey = config.apiKey;
     this.model = config.model;
     this.timeoutMs = config.timeoutMs || 15000;
+    this.language = resolveLanguage(config.language);
+    this.i18n = getI18n(this.language);
     if (!this.url || !this.apiKey) {
-      throw new Error('Remote embedding requires API_URL and API_KEY.');
+      throw new Error(this.i18n.errRemoteRequires);
     }
   }
 
@@ -25,11 +29,11 @@ export class RemoteEmbeddingBackend {
       });
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(`Remote embedding failed: ${response.status} ${message}`);
+        throw new Error(`${this.i18n.errRemoteFailedPrefix} ${response.status} ${message}`);
       }
       const data = await response.json();
       const embedding = data?.data?.[0]?.embedding || data?.embedding;
-      if (!embedding) throw new Error('Remote embedding response missing embedding.');
+      if (!embedding) throw new Error(this.i18n.errRemoteMissingEmbedding);
       return normalize(embedding);
     } finally {
       clearTimeout(timeout);

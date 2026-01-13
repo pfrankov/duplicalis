@@ -73,6 +73,7 @@ The tool labels similarity matches with specific duplication classes:
 
 ## Configuration & Model Handling
 - `dotenv` loads `.env`; notable vars: `MODEL` (`local|remote|mock`), `MODEL_PATH`, `MODEL_REPO`, `API_KEY`, `API_URL`, `API_MODEL`, `API_TIMEOUT`. Prefer `duplicalis.config.json` for repo-shared defaults, env vars for secrets.
+- Output language is set via `--lang` or `language` in `duplicalis.config.json` (`en`, `ru`, `es`, `fr`, `de`, `zh`).
 - Models are auto-downloaded when missing (`AUTO_DOWNLOAD_MODEL` true by default) and the download is memoized per process. When disabling auto-download, make sure a usable ONNX file lives under `<model>/onnx/`.
 - `--save-config` merges resolved run settings into the target config file (defaults to `<root>/duplicalis.config.json`).
 

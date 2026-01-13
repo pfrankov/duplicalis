@@ -24,7 +24,7 @@ const DEFAULT_WEIGHT = { code: 0.55, style: 0.2, structure: 0.15, holistic: 0.1 
  * @returns {Promise<{ entries: Array<Object>, cacheStats: Object }>} Component entries with vectors and cache statistics
  */
 export async function embedComponents(components, backend, config) {
-  const cache = loadCache(config.cachePath);
+  const cache = loadCache(config.cachePath, config.language);
   const modelId = modelKey(config);
   let dirty = false;
   let cleaned = maybeCleanCache(cache, config);

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { labelPair } from '../src/labels.js';
+import { getI18n } from '../src/i18n.js';
 
 const baseConfig = { similarityThreshold: 0.8, highSimilarityThreshold: 0.9, disableAnalyses: [] };
 
@@ -153,5 +154,13 @@ describe('labels', () => {
     b.hasStyles = true;
     const { labels } = labelPair(a, b, 0.5, baseConfig);
     expect(labels).not.toContain('style-duplicate');
+  });
+
+  it('localizes hints when language is provided', () => {
+    const config = { ...baseConfig, language: 'es' };
+    const a = entry('LA', 'line1\nline2', { isWrapper: true });
+    const b = entry('LB', 'line1\nline2', { isWrapper: true });
+    const { hints } = labelPair(a, b, 0.5, config);
+    expect(hints).toContain(getI18n('es').hintWrapper);
   });
 });
