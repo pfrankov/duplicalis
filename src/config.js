@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
   maxSimilarityThreshold: 1,
   limit: null,
   cachePath: null,
+  analysisCachePath: null,
   /* v8 ignore next */
   showProgress: process.stdout.isTTY && process.env.PROGRESS !== 'false',
   cleanProbability: 0.01,
@@ -62,6 +63,9 @@ export function loadConfig(cliOptions = {}) {
   merged.language = resolveLanguage(merged.language, DEFAULT_CONFIG.language);
   if (!merged.cachePath) {
     merged.cachePath = path.join(root, '.cache', 'duplicalis', 'embeddings.json');
+  }
+  if (!merged.analysisCachePath) {
+    merged.analysisCachePath = defaultAnalysisCachePath(merged.cachePath);
   }
   merged.weight = mergeObjects(DEFAULT_CONFIG.weight, fileConfig?.weight, cliOptions.weight);
   merged.remote = mergeObjects(DEFAULT_CONFIG.remote, fileConfig?.remote, cliOptions.remote);
@@ -180,6 +184,7 @@ const SAVABLE_KEYS = [
   'maxSimilarityThreshold',
   'limit',
   'cachePath',
+  'analysisCachePath',
   'showProgress',
   'cleanProbability',
   'model',
@@ -207,11 +212,20 @@ function pickSavable(config) {
 }
 
 function shouldSkipSavableKey(config, key) {
-  if (key !== 'cachePath') return false;
-  return config.cachePath === defaultCachePath(config.root);
+  if (key === 'cachePath') return config.cachePath === defaultCachePath(config.root);
+  if (key === 'analysisCachePath') {
+    return config.analysisCachePath === defaultAnalysisCachePath(config.cachePath);
+  }
+  return false;
 }
 
 function defaultCachePath(root) {
   const resolvedRoot = root ? path.resolve(root) : process.cwd();
   return path.join(resolvedRoot, '.cache', 'duplicalis', 'embeddings.json');
+}
+
+function defaultAnalysisCachePath(cachePath) {
+  /* v8 ignore next */
+  const resolvedCachePath = cachePath ? path.resolve(cachePath) : defaultCachePath(process.cwd());
+  return path.join(path.dirname(resolvedCachePath), 'analysis.msgpack');
 }

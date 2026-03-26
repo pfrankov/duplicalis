@@ -35,11 +35,15 @@ The tool labels similarity matches with specific duplication classes:
 - **Imports treated as low-signal**: Import statements are normalized/summarized; they don't dominate similarity scores.
 - **Component as primary unit**: One component = one chunk. Multi-component files are handled separately.
 - **Semantic representation over raw text**: AST-based extraction preserves structure while ignoring irrelevant whitespace/comments.
-- **Parser mode is extension-aware**: `.ts` files are parsed without JSX to avoid angle-bracket TypeScript syntax being misread as JSX; `.tsx/.jsx/.js` keep JSX enabled.
+- **Parser mode is extension-aware**: Rust-backed SWC parsing keeps `.ts` files out of JSX mode to avoid angle-bracket TypeScript syntax being misread as JSX; `.tsx/.jsx/.js` keep JSX enabled.
+- **Parser walk is single-pass**: Style imports and component metadata are collected in one SWC AST walk, and component source slices come from normalized node spans instead of repeated line splitting.
+- **Parsed analysis is cached persistently**: Parsed component metadata plus semantic representations are stored in a file-aware cache and invalidated when source files or dependent stylesheets change.
 - **Path-agnostic embeddings**: File-system paths are excluded from the embedded representation so similarity scores reflect code/style only, not folder layout.
 - **Pluggable embedding backend**: Local model by default; remote API opt-in via env vars.
 - **Remote trust boundary is explicit**: Remote mode sends component representations to the configured embeddings endpoint; local mode keeps analysis on-box.
 - **O(n²) similarity acceptable**: For up to a few thousand components; basic mitigations (top-N neighbors, early pruning) applied.
+- **Similarity inner loop is cached**: Pair scoring reuses precomputed vector norms and per-component metadata so repeated comparisons do less work.
+- **Exact similarity can parallelize**: Larger scans can shard the exact O(n²) pair evaluation across worker threads while keeping merge order and final reports deterministic.
 - **Style signals are scoped**: CSS is included only when we can map it to detected class names (including `styles.foo`/`styles['foo']`), keeping full matching rule blocks (selectors + declarations) plus CSS-in-JS snippets. Plain imports without class usage are ignored, style weights are zeroed when no style signal exists, and `style-duplicate` labels are skipped when similarity is explained solely by a shared stylesheet with no inline/unique styles.
 - **Cache cleanup is file-aware**: Cache entries keep the originating file path; cleanup removes only entries whose source files are gone and tolerates malformed cache keys.
 - **Style reads are memoized per run**: Stylesheets are read once per absolute path to keep scans fast when many components share the same CSS.
@@ -57,7 +61,7 @@ The tool labels similarity matches with specific duplication classes:
 - Keep code files under 500 lines of cohesive code. Split by responsibility before files become long, mixed, or hard to scan.
 - Tests sit in `test/*.test.js` and mirror module names. Use `examples/` as fixtures for realistic component pairs. `coverage/` is generated output; `models/` stores the default ONNX embedding model.
 - Keep test files and test groupings under 500 lines of cohesive code as well; split oversized suites by behavior or module seam.
-- Runtime artifacts land in `.cache/duplicalis/embeddings.json`; keep it untracked. Configuration is read from `duplicalis.config.json` when present.
+- Runtime artifacts land in `.cache/duplicalis/embeddings.json` and `.cache/duplicalis/analysis.msgpack`; keep them untracked. Configuration is read from `duplicalis.config.json` when present.
 
 ## Build, Test, and Development Commands
 

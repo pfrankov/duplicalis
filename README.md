@@ -31,6 +31,10 @@ Parser mode follows file extensions: `.ts` files are parsed as TypeScript withou
 `.tsx/.jsx/.js` keep JSX enabled. This avoids false JSX parsing on valid TypeScript angle-bracket
 assertions and generics.
 
+The parser now runs on Rust-backed SWC, stores parsed component metadata and semantic
+representations in a persistent analysis cache, and similarity matching can fan exact pair scoring
+out across worker threads while still producing deterministic results.
+
 <table>
   <tr valign="top">
     <td><img width="100%" src="https://github.com/user-attachments/assets/8840e100-8b43-49a7-8cc7-6a35228b0732" /></td>
@@ -69,8 +73,14 @@ assertions and generics.
           v
 +-------------------------+      +------------------------+
 | src/parser.js           |----->| component metadata      |
-| component extraction    |      | props/hooks/JSX/etc.    |
+| SWC single-pass parse   |      | props/hooks/JSX/etc.    |
 +-------------------------+      +------------------------+
+          |
+          v
++-------------------------------+      +------------------------------+
+| src/analysis-cache.js         |----->| persistent analysis cache    |
+| parsed metadata + reps        |      | file/style-aware reuse       |
++-------------------------------+      +------------------------------+
           |
           v
 +-------------------------+      +------------------------+
@@ -104,6 +114,8 @@ assertions and generics.
 +-------------------------------+      +------------------------------+
 | src/similarity.js             |----->| labels + suppression rules   |
 | findSimilarities()            |      | prop/style/logic/wrapper/etc |
+| - cached norms + meta         |      |                              |
+| - worker-thread fanout        |      |                              |
 +-------------------------------+      +------------------------------+
           |
           v
@@ -165,6 +177,10 @@ This will:
 
 You can configure `duplicalis` via CLI flags or a `duplicalis.config.json` file.
 Set `language` in the config file to localize console/report output.
+By default, embeddings are cached in `.cache/duplicalis/embeddings.json` and parsed metadata plus
+semantic representations are cached in `.cache/duplicalis/analysis.msgpack`.
+Config-only tuning keys also include `analysisCachePath`, `similarityWorkers`, and
+`similarityWorkerMinEntries` when you need to relocate the analysis cache or override worker fanout.
 
 ### Common Options
 

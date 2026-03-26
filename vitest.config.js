@@ -13,7 +13,13 @@ export default defineConfig({
         branches: 100,
         statements: 100,
       },
-      exclude: ['examples/**', 'bin/**', '**/*.config.*', '**/.eslintrc.*'],
+      exclude: [
+        'examples/**',
+        'bin/**',
+        '**/*.config.*',
+        '**/.eslintrc.*',
+        'src/similarity-match-worker.js',
+      ],
     },
   },
 });

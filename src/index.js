@@ -1,5 +1,5 @@
 import { findSourceFiles } from './scanner.js';
-import { parseFile } from './parser.js';
+import { loadComponentsWithCache } from './analysis-cache.js';
 import { createEmbeddingBackend } from './embedding/index.js';
 import { embedComponents, findSimilarities } from './similarity.js';
 import { emitReport } from './output.js';
@@ -21,14 +21,12 @@ export async function run(config) {
   stats.scanMs = Date.now() - scanStart;
 
   const parseStart = Date.now();
-  let components = [];
-  for (const file of files) {
-    const { components: comps } = parseFile(file, config);
-    components = components.concat(comps);
-  }
+  const parsed = loadComponentsWithCache(files, config);
+  let components = parsed.components;
   components = components.filter((component) => !shouldIgnoreComponent(component, config));
   markCompareTargets(components, config);
   stats.parseMs = Date.now() - parseStart;
+  stats.analysisCache = parsed.cacheStats;
 
   const backend = await createEmbeddingBackend(config);
   const embedStart = Date.now();
@@ -37,7 +35,7 @@ export async function run(config) {
   stats.cache = cacheStats;
 
   const similarityStart = Date.now();
-  const { pairs, scorecard } = findSimilarities(entries, config);
+  const { pairs, scorecard } = await findSimilarities(entries, config);
   stats.similarityMs = Date.now() - similarityStart;
   stats.scorecard = scorecard;
 

@@ -3,6 +3,15 @@ export function normalize(vector) {
   return vector.map((v) => v / norm);
 }
 
+export function dot(a, b) {
+  const size = Math.min(a.length, b.length);
+  let value = 0;
+  for (let i = 0; i < size; i += 1) {
+    value += a[i] * b[i];
+  }
+  return value;
+}
+
 export function cosine(a, b) {
   const size = Math.min(a.length, b.length);
   let dot = 0;

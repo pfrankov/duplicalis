@@ -1,7 +1,6 @@
 import fs from 'fs';
 import cliProgress from 'cli-progress';
-import { buildRepresentation } from './representation.js';
-import { loadStyles } from './styles.js';
+import { ensureComponentAnalysis } from './component-analysis.js';
 import { normalize } from './math.js';
 import {
   loadCache,
@@ -52,19 +51,19 @@ function createBar(show, total) {
 }
 
 async function embedComponent(component, backend, config, cache, modelId, stats, memo) {
-  const styles = loadStyles(component, config);
-  const rep = buildRepresentation(component, styles.styleText);
-  const cached = getCached(component, rep, styles.styleText, cache, modelId, stats);
+  const analysis = ensureComponentAnalysis(component, config);
+  const rep = analysis.representation;
+  const cached = getCached(component, rep, analysis.styleText, cache, modelId, stats);
   const vecs = await embedMissing(cached.vectors, rep, backend, memo);
-  const hasStyles = Boolean((styles.styleText || '').trim());
+  const hasStyles = analysis.hasStyles;
   return {
     entry: {
       component,
       vector: combineVectors(vecs.vectors, config.weight, hasStyles),
       ...vecs.vectors,
-      styleText: styles.styleText,
-      stylePaths: styles.stylePaths,
-      hasCssInJs: styles.hasCssInJs,
+      styleText: analysis.styleText,
+      stylePaths: analysis.stylePaths,
+      hasCssInJs: analysis.hasCssInJs,
       hasStyles,
       representation: rep,
     },

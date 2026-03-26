@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findSimilarities } from '../src/similarity.js';
 import { makeEntry } from './similarity-fixtures.js';
+import { mergeSimilarityStates } from '../src/similarity-match-core.js';
 
 describe('similarity matching', () => {
   it('returns all matches when limit is not provided', () => {
@@ -43,6 +44,19 @@ describe('similarity matching', () => {
     expect(result.pairs).toEqual([]);
     expect(result.scorecard.coveredComponents).toBe(0);
     expect(result.scorecard.maxSimilarity).toBe(0);
+  });
+
+  it('treats zero-norm vectors as non-matches instead of crashing', () => {
+    const { pairs, scorecard } = findSimilarities(
+      [makeEntry('ZeroA', [0, 0]), makeEntry('ZeroB', [0, 0])],
+      {
+        similarityThreshold: 0.1,
+        highSimilarityThreshold: 0.9,
+        limit: 2,
+      }
+    );
+    expect(pairs).toEqual([]);
+    expect(scorecard.maxSimilarity).toBe(0);
   });
 
   it('suppresses expected wrapper and low-signal pairs', () => {
@@ -330,5 +344,91 @@ describe('similarity matching', () => {
       ids.some((pair) => pair.includes('Changed#Changed') && pair.includes('ChangedToo#ChangedToo'))
     ).toBe(false);
     expect(scorecard.suppressionReasons['compare-filter']).toBeGreaterThan(0);
+  });
+
+  it('produces the same result when worker threads are enabled', async () => {
+    const entries = [
+      makeEntry('A', [1, 0]),
+      makeEntry('B', [1, 0]),
+      makeEntry('C', [0.7, 0.3]),
+      makeEntry('D', [0, 1]),
+    ];
+    const config = {
+      similarityThreshold: 0.5,
+      highSimilarityThreshold: 0.9,
+      limit: 10,
+      similarityWorkers: 2,
+      similarityWorkerMinEntries: 0,
+    };
+    const serial = findSimilarities(entries, {
+      ...config,
+      similarityWorkers: 1,
+    });
+    const parallel = await findSimilarities(entries, config);
+    expect(parallel).toEqual(serial);
+  });
+
+  it('falls back to local processing when worker ranges collapse to one chunk', async () => {
+    const result = await findSimilarities(
+      [makeEntry('A', [1, 0]), makeEntry('B', [1, 0])],
+      {
+        similarityThreshold: 0.1,
+        highSimilarityThreshold: 0.9,
+        limit: 10,
+        similarityWorkers: 2,
+        similarityWorkerMinEntries: 0,
+      }
+    );
+    expect(result.pairs).toHaveLength(1);
+  });
+
+  it('merges partial worker states deterministically', () => {
+    const merged = mergeSimilarityStates([
+      {
+        pairs: [{ a: 'A', b: 'B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] }],
+        best: { A: 0.9 },
+        checked: 1,
+        sum: 0.9,
+        max: 0.9,
+        suppressed: 1,
+        reasons: { x: 1 },
+      },
+      {
+        pairs: [{ a: 'C', b: 'D', similarity: 0.8, category: 'near-duplicate', labels: [], hints: [] }],
+        best: { B: 0.9, C: 0.8 },
+        checked: 2,
+        sum: 1.4,
+        max: 0.8,
+        suppressed: 2,
+        reasons: { x: 1, y: 1 },
+      },
+    ]);
+    expect(merged.pairs).toHaveLength(2);
+    expect(merged.checked).toBe(3);
+    expect(merged.sum).toBeCloseTo(2.3, 6);
+    expect(merged.max).toBe(0.9);
+    expect(merged.best.A).toBe(0.9);
+    expect(merged.best.B).toBe(0.9);
+    expect(merged.reasons).toEqual({ x: 2, y: 1 });
+  });
+
+  it('merges suppression scorecards correctly across worker ranges', async () => {
+    const entries = [
+      makeEntry('A', [1, 0]),
+      makeEntry('B', [1, 0]),
+      makeEntry('C', [1, 0]),
+      makeEntry('D', [1, 0]),
+    ];
+    const result = await findSimilarities(entries, {
+      similarityThreshold: 0.5,
+      highSimilarityThreshold: 0.9,
+      maxSimilarityThreshold: 0.8,
+      limit: 10,
+      similarityWorkers: 2,
+      similarityWorkerMinEntries: 0,
+    });
+    expect(result.pairs).toEqual([]);
+    expect(result.scorecard.suppressedPairs).toBe(6);
+    expect(result.scorecard.suppressionReasons['over-max-threshold']).toBe(6);
   });
 });
