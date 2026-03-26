@@ -22,6 +22,13 @@ import { LocalEmbeddingBackend } from '../src/embedding/local.js';
 import { createEmbeddingBackend } from '../src/embedding/index.js';
 import * as modelFetch from '../src/model-fetch.js';
 
+function createLocalModelFixture() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-local-model-'));
+  fs.mkdirSync(path.join(dir, 'onnx'));
+  fs.writeFileSync(path.join(dir, 'onnx/model_quantized.onnx'), 'x');
+  return dir;
+}
+
 describe('embeddings', () => {
   beforeEach(() => {
     transformers.pipeline.mockReset();
@@ -120,43 +127,47 @@ describe('embeddings', () => {
   });
 
   it('uses local model path when pipeline resolves', async () => {
+    const modelPath = createLocalModelFixture();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [0, 0] }));
-    const backend = new LocalEmbeddingBackend({ modelPath: 'models/all-MiniLM-L6-v2' });
+    const backend = new LocalEmbeddingBackend({ modelPath });
     const vec = await backend.embed('text');
     expect(vec.every((v) => Number.isFinite(v))).toBe(true);
   });
 
   it('reuses a loaded pipeline', async () => {
+    const modelPath = createLocalModelFixture();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [1, 1] }));
-    const backend = new LocalEmbeddingBackend({ modelPath: 'models/all-MiniLM-L6-v2' });
+    const backend = new LocalEmbeddingBackend({ modelPath });
     await backend.embed('first');
     await backend.embed('second');
     expect(transformers.pipeline).toHaveBeenCalledTimes(1);
   });
 
   it('auto-downloads model when enabled', async () => {
+    const modelPath = createLocalModelFixture();
     const ensureSpy = vi.spyOn(modelFetch, 'ensureModel').mockResolvedValue();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [1, 1] }));
     const backend = new LocalEmbeddingBackend({
-      modelPath: 'models/all-MiniLM-L6-v2',
+      modelPath,
       autoDownloadModel: true,
       modelRepo: 'https://example.com/model',
     });
     await backend.embed('text');
     expect(ensureSpy).toHaveBeenCalledWith(
-      path.resolve('models/all-MiniLM-L6-v2'),
+      path.resolve(modelPath),
       'https://example.com/model',
       true,
-      'en',
+      'en'
     );
     ensureSpy.mockRestore();
   });
 
   it('downloads the model only once per backend instance', async () => {
+    const modelPath = createLocalModelFixture();
     const ensureSpy = vi.spyOn(modelFetch, 'ensureModel').mockResolvedValue();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [1, 1] }));
     const backend = new LocalEmbeddingBackend({
-      modelPath: 'models/all-MiniLM-L6-v2',
+      modelPath,
       autoDownloadModel: true,
       modelRepo: 'https://example.com/model',
     });
@@ -167,7 +178,9 @@ describe('embeddings', () => {
   });
 
   it('throws when local config is invalid', async () => {
-    await expect(createEmbeddingBackend({ model: 'local', modelPath: '', remote: {} })).rejects.toThrow();
+    await expect(
+      createEmbeddingBackend({ model: 'local', modelPath: '', remote: {} })
+    ).rejects.toThrow();
   });
 
   it('creates remote backend via factory', async () => {
@@ -185,10 +198,11 @@ describe('embeddings', () => {
   });
 
   it('creates local backend via factory', async () => {
+    const modelPath = createLocalModelFixture();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [0, 1] }));
     const backend = await createEmbeddingBackend({
       model: 'local',
-      modelPath: 'models/all-MiniLM-L6-v2',
+      modelPath,
       autoDownloadModel: false,
       remote: {},
     });
@@ -197,9 +211,10 @@ describe('embeddings', () => {
   });
 
   it('defaults to local when model is not set', async () => {
+    const modelPath = createLocalModelFixture();
     transformers.pipeline.mockResolvedValue(async () => ({ data: [0, 1] }));
     const backend = await createEmbeddingBackend({
-      modelPath: 'models/all-MiniLM-L6-v2',
+      modelPath,
       autoDownloadModel: false,
       remote: {},
     });

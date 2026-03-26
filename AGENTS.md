@@ -58,6 +58,7 @@ The tool labels similarity matches with specific duplication classes:
 - `npm start` shows CLI help; typical local run: `node ./bin/duplicalis.js scan examples --threshold 0.9`.
 - `npm run lint` (ESLint rules + complexity guard), `npm run format` / `npm run format:check` (Prettier over `src/**/*.js`).
 - `npm test` or `npm run coverage` runs Vitest with V8 coverage thresholds enforced.
+- Tests must stay self-contained in CI; do not rely on a pre-downloaded `models/all-MiniLM-L6-v2` tree when a temporary fixture or mock is enough.
 - Use `--save-config [path]` to persist the current run options into `duplicalis.config.json` (or another path) so future runs inherit them.
 - npm publishing is automated by `.github/workflows/publish-npm.yml` on tag pushes; it expects a GitHub Actions secret named `NPM_TOKEN`. Repository history uses `v`-prefixed tags (`v1.0.1`, `v1.1.0`), so `vX.Y.Z` is the canonical release format even though the workflow still accepts both styles.
 

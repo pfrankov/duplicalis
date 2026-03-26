@@ -244,6 +244,7 @@ GitHub Actions auto-publishes the package to npm from `.github/workflows/publish
 - Add the repository secret `NPM_TOKEN` in GitHub.
 - Existing repository tags use the `vX.Y.Z` format (`v1.0.1`, `v1.1.0`), so this is the canonical tag style going forward.
 - Push a tag that matches `package.json` version in that format, for example `v1.1.1`.
+- The test suite is CI-safe on a clean checkout and does not require a pre-downloaded `models/all-MiniLM-L6-v2` tree.
 - The workflow runs `npm ci`, `npm test`, and then `npm publish --provenance --access public`.
 
 ---
