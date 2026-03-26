@@ -6,7 +6,13 @@ import { getI18n, resolveLanguage } from '../i18n.js';
 
 export class LocalEmbeddingBackend {
   constructor(options) {
-    const { modelPath, autoDownloadModel = false, modelRepo, language } = options;
+    const {
+      modelPath,
+      autoDownloadModel = false,
+      modelRepo,
+      showProgress = true,
+      language,
+    } = options;
     this.language = resolveLanguage(language);
     if (!modelPath) {
       const i18n = getI18n(this.language);
@@ -16,6 +22,7 @@ export class LocalEmbeddingBackend {
     this.modelIdentifier = path.basename(this.modelPath);
     this.autoDownloadModel = autoDownloadModel;
     this.modelRepo = modelRepo;
+    this.showProgress = showProgress;
     env.allowLocalModels = true;
     env.localModelPath = path.dirname(this.modelPath);
     env.cacheDir = env.localModelPath;
@@ -43,7 +50,12 @@ export class LocalEmbeddingBackend {
   async ensureModelReady() {
     if (this.modelReadyPromise) return this.modelReadyPromise;
     if (this.autoDownloadModel) {
-      this.modelReadyPromise = ensureModel(this.modelPath, this.modelRepo, true, this.language);
+      this.modelReadyPromise = ensureModel(
+        this.modelPath,
+        this.modelRepo,
+        this.showProgress,
+        this.language
+      );
       return this.modelReadyPromise;
     }
     this.modelReadyPromise = Promise.resolve(this.assertLocalModelExists());

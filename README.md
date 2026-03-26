@@ -16,6 +16,7 @@
   </p>
   <p>
     <a href="#-quick-start">Quick start</a> |
+    <a href="#-architecture">Architecture</a> |
     <a href="#-configuration">Configuration</a> |
     <a href="#-usage-examples">Examples</a>
   </p>
@@ -37,6 +38,84 @@ assertions and generics.
 </td>
   </tr>
 </table>
+
+## 🧭 Architecture
+
+```text
++-------------------+
+| bin/duplicalis.js |
++-------------------+
+          |
+          v
++-------------------------+
+| src/cli.js              |
+| - parse flags           |
+| - resolve config path   |
+| - save config(optional) |
++-------------------------+
+          |
+          v
++-------------------------+
+| src/index.js            |
+| orchestrates the scan   |
++-------------------------+
+          |
+          v
++-------------------------+      +------------------------+
+| src/scanner.js          |----->| React source files     |
+| deterministic discovery |      | (.tsx/.ts/.jsx/.js)    |
++-------------------------+      +------------------------+
+          |
+          v
++-------------------------+      +------------------------+
+| src/parser.js           |----->| component metadata      |
+| component extraction    |      | props/hooks/JSX/etc.    |
++-------------------------+      +------------------------+
+          |
+          v
++-------------------------+      +------------------------+
+| src/styles.js           |----->| scoped style signals    |
+| CSS / CSS-in-JS lookup  |      | class-linked CSS only   |
++-------------------------+      +------------------------+
+          |
+          v
++-------------------------------+
+| src/representation.js         |
+| semantic component snapshot   |
++-------------------------------+
+          |
+          v
++-------------------------------+      +------------------------------+
+| src/similarity.js             |<---->| src/cache.js                 |
+| embedComponents()             |      | persistent embedding cache   |
+| - per-run memoization         |      +------------------------------+
+| - vector assembly             |
++-------------------------------+
+          |
+          v
++-----------------------------------------------+
+| embedding backend                             |
+| src/embedding/local.js  -> ONNX local model   |
+| src/embedding/remote.js -> OpenAI/Ollama API  |
+| src/embedding/mock.js   -> deterministic test |
++-----------------------------------------------+
+          |
+          v
++-------------------------------+      +------------------------------+
+| src/similarity.js             |----->| labels + suppression rules   |
+| findSimilarities()            |      | prop/style/logic/wrapper/etc |
++-------------------------------+      +------------------------------+
+          |
+          v
++-------------------------+
+| src/output.js           |
+| console + JSON/TXT      |
++-------------------------+
+
+Supporting flows:
+- src/model-fetch.js -> auto-download local model artifacts when local mode is enabled.
+- src/fs-atomic.js -> atomic writes for cache, config, reports, and downloaded model files.
+```
 
 ## 🚀 Quick Start
 
@@ -101,29 +180,29 @@ Set `language` in the config file to localize console/report output.
 
 ### Advanced Options
 
-| Flag                       | Description                                                       | Default                  |
-| :------------------------- | :---------------------------------------------------------------- | :----------------------- |
-| `--include <globs>`        | Glob patterns for files to include.                               | `**/*.{ts,tsx,js,jsx}`   |
-| `--max-threshold <n>`      | Maximum similarity to report (e.g., `0.99` to skip exact clones). | `1`                      |
-| `--high-threshold <n>`     | Threshold for `almost-identical` label.                           | `0.9`                    |
-| `--min-path-distance <n>`  | Minimum folder distance between pairs (0 = same folder allowed).  | `0`                      |
-| `--model <type>`           | Embedding backend: `local`, `remote`, or `mock`.                  | `local`                  |
-| `--api-url <url>`          | URL for remote embeddings (OpenAI/Ollama).                        | —                        |
-| `--api-key <key>`          | API key for remote embeddings.                                    | —                        |
-| `--api-model <name>`       | Model name for remote API.                                        | `text-embedding-3-small` |
-| `--api-timeout <ms>`       | Timeout for remote API calls.                                     | `15000`                  |
-| `--ignore-component-name`  | Regex to ignore components by name (e.g. `^Icon`).                | —                        |
-| `--ignore-component-usage` | Regex to ignore components that use specific components.          | —                        |
-| `--style-extensions`       | Style file extensions to analyze.                                 | `.css,.scss,.sass,.less` |
-| `--model-path <path>`      | Path to local model files.                                        | `models/...`             |
-| `--model-repo <url>`       | URL to download model from.                                       | Hugging Face             |
-| `--auto-download-model`    | Automatically download model if missing.                          | `true`                   |
-| `--cache-path <path>`      | Custom path for the embedding cache.                              | `.cache/duplicalis/...`  |
-| `--config <path>`          | Path to a specific config file.                                   | `duplicalis.config.json` |
-| `--no-progress`            | Disable progress bars (good for CI).                              | —                        |
-| `--no-ignores`             | Disable `// duplicalis-ignore-*` comments.                        | —                        |
-| `--save-config`            | Save current CLI flags to `duplicalis.config.json`.               | —                        |
-| `--disable-analyses`       | Disable specific labels (e.g., `style-duplicate`).                | —                        |
+| Flag                       | Description                                                                     | Default                  |
+| :------------------------- | :------------------------------------------------------------------------------ | :----------------------- |
+| `--include <globs>`        | Glob patterns for files to include.                                             | `**/*.{ts,tsx,js,jsx}`   |
+| `--max-threshold <n>`      | Maximum similarity to report (e.g., `0.99` to skip exact clones).               | `1`                      |
+| `--high-threshold <n>`     | Threshold for `almost-identical` label.                                         | `0.9`                    |
+| `--min-path-distance <n>`  | Minimum folder distance between pairs (0 = same folder allowed).                | `0`                      |
+| `--model <type>`           | Embedding backend: `local`, `remote`, or `mock`.                                | `local`                  |
+| `--api-url <url>`          | Full embeddings endpoint for remote mode. Defaults to OpenAI `/v1/embeddings`.  | OpenAI `/v1/embeddings`  |
+| `--api-key <key>`          | API key for authenticated remote embeddings. Not needed for local Ollama.       | —                        |
+| `--api-model <name>`       | Model name for remote API.                                                      | `text-embedding-3-small` |
+| `--api-timeout <ms>`       | Timeout for remote API calls.                                                   | `15000`                  |
+| `--ignore-component-name`  | Regex to ignore components by name (e.g. `^Icon`).                              | —                        |
+| `--ignore-component-usage` | Regex to ignore components that use specific components.                        | —                        |
+| `--style-extensions`       | Style file extensions to analyze.                                               | `.css,.scss,.sass,.less` |
+| `--model-path <path>`      | Path to local model files.                                                      | `models/...`             |
+| `--model-repo <url>`       | URL to download model from.                                                     | Hugging Face             |
+| `--auto-download-model`    | Automatically download model if missing.                                        | `true`                   |
+| `--cache-path <path>`      | Custom path for the embedding cache.                                            | `.cache/duplicalis/...`  |
+| `--config <path>`          | Path to a specific config file. Relative paths are resolved from the scan root. | `duplicalis.config.json` |
+| `--no-progress`            | Disable progress bars (good for CI).                                            | —                        |
+| `--no-ignores`             | Disable `// duplicalis-ignore-*` comments.                                      | —                        |
+| `--save-config`            | Save current CLI flags to `duplicalis.config.json`.                             | —                        |
+| `--disable-analyses`       | Disable specific labels (e.g., `style-duplicate`).                              | —                        |
 
 ## 📚 Usage Examples
 
@@ -177,12 +256,14 @@ export MODEL=remote
 export API_KEY=sk-...
 npx duplicalis scan
 
-# Ollama (Local)
+# Ollama (local, no API key required)
 export MODEL=remote
-export API_URL=http://localhost:11434/api/embeddings
-export API_MODEL=bge-m3
+export API_URL=http://localhost:11434/v1/embeddings
+export API_MODEL=embeddinggemma
 npx duplicalis scan
 ```
+
+Remote mode sends component representations to the configured embeddings endpoint. Use `local` mode when code must stay on-box.
 
 ### 7. Ignore Specific Components
 
@@ -233,9 +314,13 @@ Save your favorite flags to a config file so you don't have to type them every t
 npx duplicalis scan --threshold 0.9 --exclude "**/*.test.tsx" --save-config
 ```
 
+Saved configs intentionally omit the resolved scan root and the default derived cache path so the file stays portable across machines and worktrees.
+
 ### Caching
 
 Results are cached in `.cache/duplicalis/embeddings.json` to speed up future runs. Delete this file to force a fresh scan.
+
+Within a single run, identical component representations are memoized before hitting the embedding backend, and cache/report/config writes use atomic file replacement to avoid partial files after interrupted runs.
 
 ## 🚢 Release Automation
 

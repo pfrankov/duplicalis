@@ -52,7 +52,8 @@ export default {
   errModelPathRequired: 'Chemin du modèle requis pour le téléchargement.',
   errTooManyRedirectsPrefix: 'Trop de redirections pendant le téléchargement',
   errDownloadFailedPrefix: 'Échec du téléchargement',
-  errRemoteRequires: 'Le mode distant nécessite API_URL et API_KEY.',
+  errRemoteRequires:
+    'Le mode distant nécessite une clé API pour OpenAI ou une API_URL explicite pour un service local compatible.',
   errRemoteFailedPrefix: 'Erreur embedding distant :',
   errRemoteMissingEmbedding: 'Réponse sans embedding.',
   errLocalRequiresPath: 'Le mode local nécessite modelPath.',

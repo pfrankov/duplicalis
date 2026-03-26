@@ -13,6 +13,8 @@ export function createProgram(argv = process.argv) {
   const i18n = getI18n(language);
   const program = new Command();
   program.name('duplicalis').description(i18n.cliDescription);
+  program.showHelpAfterError();
+  program.showSuggestionAfterError();
 
   program
     .command('help')
@@ -21,7 +23,7 @@ export function createProgram(argv = process.argv) {
       program.outputHelp();
     });
 
-  const scan = program
+  program
     .command('scan', { isDefault: true })
     .description(i18n.cliScanDescription)
     .argument('[target]', i18n.cliArgTarget)
@@ -54,59 +56,15 @@ export function createProgram(argv = process.argv) {
     .option('--save-config [path]', i18n.cliOptSaveConfig)
     .option('--no-ignores', i18n.cliOptNoIgnores)
     .option('--lang <code>', i18n.cliOptLang)
-    .action(async (target, opts) => {
-      const rootArg = opts.cmd || target || process.cwd();
-      const resolvedRoot = path.resolve(rootArg);
+    .action(async (target, opts, command) => {
+      const resolvedRoot = resolveScanRoot(target, opts);
       const configPath = resolveConfigPath(resolvedRoot, opts.config);
-      const cliOptions = {
-        root: resolvedRoot,
-        out: opts.out,
-        include: opts.include,
-        exclude: opts.exclude,
-        similarityThreshold: opts.threshold,
-        highSimilarityThreshold: opts.highThreshold,
-        maxSimilarityThreshold: opts.maxThreshold,
-        limit: opts.limit,
-        model: opts.model,
-        modelPath: opts.modelPath,
-        modelRepo: opts.modelRepo,
-        autoDownloadModel: opts.autoDownloadModel,
-        cachePath: opts.cachePath,
-        showProgress: opts.progress,
-        disableAnalyses: opts.disableAnalyses,
-        styleExtensions: opts.styleExtensions,
-        allowIgnores: opts.ignores,
-        ignoreComponentNamePatterns: opts.ignoreComponentName,
-        ignoreComponentUsagePatterns: opts.ignoreComponentUsage,
-        relativePaths: opts.relativePaths,
-        minPathDistance: opts.minPathDistance,
-        compareGlobs: opts.compare,
-        language: opts.lang,
-        remote: {
-          url: opts.apiUrl,
-          apiKey: opts.apiKey,
-          model: opts.apiModel,
-          timeoutMs: opts.apiTimeout,
-        },
-      };
+      const cliOptions = buildCliOptions(opts, command, resolvedRoot);
       const config = loadConfig({ ...cliOptions, config: configPath });
-      if (opts.saveConfig !== undefined) {
-        const provided = typeof opts.saveConfig === 'string' ? opts.saveConfig : null;
-        const targetPath = provided
-          ? path.isAbsolute(provided)
-            ? provided
-            : path.resolve(resolvedRoot, provided)
-          : configPath;
-        const savedPath = saveConfigFile(config, targetPath);
-        config.configPath = savedPath;
-        config.configSaved = true;
-      } else {
-        config.configPath = configPath;
-      }
+      updateConfigPersistence(config, opts.saveConfig, configPath, resolvedRoot);
       await run(config);
     });
 
-  program.addCommand(scan);
   return program;
 }
 
@@ -116,8 +74,68 @@ export async function runCli(argv = process.argv) {
   return program;
 }
 
+function resolveScanRoot(target, opts) {
+  return path.resolve(opts.cmd || target || process.cwd());
+}
+
+function buildCliOptions(opts, command, root) {
+  return {
+    root,
+    out: opts.out,
+    include: opts.include,
+    exclude: opts.exclude,
+    similarityThreshold: opts.threshold,
+    highSimilarityThreshold: opts.highThreshold,
+    maxSimilarityThreshold: opts.maxThreshold,
+    limit: opts.limit,
+    model: opts.model,
+    modelPath: opts.modelPath,
+    modelRepo: opts.modelRepo,
+    autoDownloadModel: opts.autoDownloadModel,
+    cachePath: opts.cachePath,
+    showProgress: readCliBooleanOverride(command, 'progress', opts.progress),
+    disableAnalyses: opts.disableAnalyses,
+    styleExtensions: opts.styleExtensions,
+    allowIgnores: readCliBooleanOverride(command, 'ignores', opts.ignores),
+    ignoreComponentNamePatterns: opts.ignoreComponentName,
+    ignoreComponentUsagePatterns: opts.ignoreComponentUsage,
+    relativePaths: opts.relativePaths,
+    minPathDistance: opts.minPathDistance,
+    compareGlobs: opts.compare,
+    language: opts.lang,
+    remote: {
+      url: opts.apiUrl,
+      apiKey: opts.apiKey,
+      model: opts.apiModel,
+      timeoutMs: opts.apiTimeout,
+    },
+  };
+}
+
+function readCliBooleanOverride(command, optionName, value) {
+  return command.getOptionValueSource(optionName) === 'cli' ? value : undefined;
+}
+
+function updateConfigPersistence(config, saveConfig, configPath, root) {
+  if (saveConfig === undefined) {
+    config.configPath = configPath;
+    return;
+  }
+  const savedPath = saveConfigFile(config, resolveSaveConfigPath(saveConfig, configPath, root));
+  config.configPath = savedPath;
+  config.configSaved = true;
+}
+
+function resolveSaveConfigPath(saveConfig, configPath, root) {
+  const provided = typeof saveConfig === 'string' ? saveConfig : null;
+  if (!provided) return configPath;
+  return path.isAbsolute(provided) ? provided : path.resolve(root, provided);
+}
+
 /* v8 ignore start -- only exercised when invoked as a standalone binary */
-const invokedDirectly = import.meta.url === pathToFileURL(process.argv[1]).href;
+const invokedDirectly = process.argv[1]
+  ? import.meta.url === pathToFileURL(process.argv[1]).href
+  : false;
 if (invokedDirectly) {
   runCli().catch((error) => {
     console.error(error);

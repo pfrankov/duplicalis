@@ -52,7 +52,7 @@ export default {
   errModelPathRequired: '下载需要指定模型路径。',
   errTooManyRedirectsPrefix: '下载重定向过多',
   errDownloadFailedPrefix: '下载失败',
-  errRemoteRequires: '远程模式需要 API_URL 和 API_KEY。',
+  errRemoteRequires: '远程嵌入对 OpenAI 需要 API key，或为兼容的本地服务提供明确的 API_URL。',
   errRemoteFailedPrefix: '远程向量化失败：',
   errRemoteMissingEmbedding: '远程响应缺少 embedding 字段。',
   errLocalRequiresPath: '本地模式需要 modelPath。',

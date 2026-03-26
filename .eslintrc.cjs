@@ -14,5 +14,13 @@ module.exports = {
     'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-console': 'off',
   },
+  overrides: [
+    {
+      files: ['bin/**/*.js', 'src/**/*.js', 'test/**/*.js'],
+      rules: {
+        'max-lines': ['error', { max: 500, skipBlankLines: true, skipComments: true }],
+      },
+    },
+  ],
   ignorePatterns: ['coverage/', 'node_modules/', 'dist/'],
 };

@@ -13,6 +13,7 @@ export async function createEmbeddingBackend(config) {
     modelPath: config.modelPath,
     autoDownloadModel: config.autoDownloadModel,
     modelRepo: config.modelRepo,
+    showProgress: config.showProgress,
     language: config.language,
   });
 }

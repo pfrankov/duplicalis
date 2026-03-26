@@ -60,8 +60,102 @@ describe('embeddings', () => {
     expect(global.fetch).toHaveBeenCalled();
   });
 
-  it('throws when remote credentials are missing', () => {
+  it('uses the default OpenAI embeddings endpoint when url is omitted', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: [{ embedding: [1, 0, 0] }] }),
+    }));
+    const backend = new RemoteEmbeddingBackend({ apiKey: 'key', model: 'm' });
+    await backend.embed('text');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/embeddings',
+      expect.objectContaining({
+        body: JSON.stringify({ model: 'm', input: 'text' }),
+      })
+    );
+  });
+
+  it('throws when OpenAI auth is missing', () => {
     expect(() => new RemoteEmbeddingBackend({ url: '', apiKey: '', model: 'm' })).toThrow();
+  });
+
+  it('allows local Ollama-compatible embeddings without an API key', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ embeddings: [[1, 0, 0]] }),
+    }));
+    const backend = new RemoteEmbeddingBackend({
+      url: 'http://localhost:11434/api/embed',
+      apiKey: '',
+      model: 'embeddinggemma',
+    });
+    const vec = await backend.embed('text');
+    expect(vec[0]).toBe(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:11434/api/embed',
+      expect.objectContaining({
+        body: JSON.stringify({ model: 'embeddinggemma', input: 'text' }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+  });
+
+  it('normalizes base URLs to an embeddings endpoint', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: [{ embedding: [1, 0, 0] }] }),
+    }));
+    const backend = new RemoteEmbeddingBackend({
+      url: 'http://localhost:11434',
+      apiKey: '',
+      model: 'embeddinggemma',
+    });
+    await backend.embed('text');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:11434/v1/embeddings',
+      expect.objectContaining({
+        body: JSON.stringify({ model: 'embeddinggemma', input: 'text' }),
+      })
+    );
+  });
+
+  it('normalizes versioned base URLs to an embeddings endpoint', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ data: [{ embedding: [1, 0, 0] }] }),
+    }));
+    const backend = new RemoteEmbeddingBackend({
+      url: 'http://localhost:11434/v1',
+      apiKey: '',
+      model: 'embeddinggemma',
+    });
+    await backend.embed('text');
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:11434/v1/embeddings',
+      expect.objectContaining({
+        body: JSON.stringify({ model: 'embeddinggemma', input: 'text' }),
+      })
+    );
+  });
+
+  it('keeps legacy Ollama embeddings payload compatibility', async () => {
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ embedding: [1, 0, 0] }),
+    }));
+    const backend = new RemoteEmbeddingBackend({
+      url: 'http://localhost:11434/api/embeddings',
+      apiKey: '',
+      model: 'embeddinggemma',
+    });
+    const vec = await backend.embed('text');
+    expect(vec[0]).toBe(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:11434/api/embeddings',
+      expect.objectContaining({
+        body: JSON.stringify({ model: 'embeddinggemma', prompt: 'text' }),
+      })
+    );
   });
 
   it('surfaces remote errors', async () => {
@@ -174,6 +268,28 @@ describe('embeddings', () => {
     await backend.embed('first');
     await backend.embed('second');
     expect(ensureSpy).toHaveBeenCalledTimes(1);
+    ensureSpy.mockRestore();
+  });
+
+  it('passes progress preference to local auto-downloads via the factory', async () => {
+    const modelPath = createLocalModelFixture();
+    const ensureSpy = vi.spyOn(modelFetch, 'ensureModel').mockResolvedValue();
+    transformers.pipeline.mockResolvedValue(async () => ({ data: [1, 1] }));
+    const backend = await createEmbeddingBackend({
+      model: 'local',
+      modelPath,
+      autoDownloadModel: true,
+      modelRepo: 'https://example.com/model',
+      showProgress: false,
+      remote: {},
+    });
+    await backend.embed('text');
+    expect(ensureSpy).toHaveBeenCalledWith(
+      path.resolve(modelPath),
+      'https://example.com/model',
+      false,
+      'en'
+    );
     ensureSpy.mockRestore();
   });
 

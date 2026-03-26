@@ -1,10 +1,10 @@
-import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import { highlight } from 'cli-highlight';
 import { banner } from './duplicalis.js';
 import { duplicalisBanner } from './banner-text.js';
 import { getI18n } from './i18n.js';
+import { writeFileAtomicSync } from './fs-atomic.js';
 
 export function emitReport(entries, pairs = [], config, stats) {
   const i18n = getI18n(config?.language);
@@ -23,9 +23,9 @@ export function emitReport(entries, pairs = [], config, stats) {
   if (outPath) {
     /* v8 ignore next */
     if (outPath.endsWith('.txt')) {
-      fs.writeFileSync(outPath, toTextReport(report, entries, config), 'utf8');
+      writeFileAtomicSync(outPath, toTextReport(report, entries, config), 'utf8');
     } else {
-      fs.writeFileSync(outPath, JSON.stringify(report, null, 2), 'utf8');
+      writeFileAtomicSync(outPath, JSON.stringify(report, null, 2), 'utf8');
     }
   }
   printConsole(report, config, outPath, entries, i18n);
@@ -74,24 +74,35 @@ function formatMode(config, i18n) {
 
 function printRunConfig(config, outPath, i18n) {
   console.log(chalk.bold(i18n.runConfigTitle));
-  console.log(`  ${i18n.labelRoot}: ${config.root}`);
+  buildRunConfigLines(config, outPath, i18n).forEach((line) => console.log(line));
+}
+
+function buildRunConfigLines(config, outPath, i18n) {
+  const lines = [`  ${i18n.labelRoot}: ${config.root}`];
   if (config.configPath) {
     const suffix = config.configSaved ? i18n.configUpdatedSuffix : '';
-    console.log(`  ${i18n.labelConfig}: ${config.configPath}${suffix}`);
+    lines.push(`  ${i18n.labelConfig}: ${config.configPath}${suffix}`);
   }
-  if (outPath) console.log(`  ${i18n.labelOutput}: ${outPath}`);
-  console.log(`  ${i18n.labelCache}: ${config.cachePath || i18n.noneValue}`);
-  console.log(
-    `  ${i18n.labelThresholds}: ${i18n.thresholdsMinLabel} ${config.similarityThreshold} · ${i18n.thresholdsHighLabel} ${config.highSimilarityThreshold} · ${i18n.thresholdsMaxLabel} ${config.maxSimilarityThreshold ?? 1}`
-  );
-  const limitText =
-    typeof config.limit === 'number' && Number.isFinite(config.limit)
-      ? config.limit
-      : i18n.allValue;
-  console.log(`  ${i18n.labelLimit}: ${limitText}`);
-  console.log(`  ${i18n.labelInclude}: ${(config.include || []).join(', ') || i18n.noneSymbol}`);
-  console.log(`  ${i18n.labelExclude}: ${(config.exclude || []).join(', ') || i18n.noneSymbol}`);
-  console.log(`  ${i18n.labelLanguage}: ${i18n.lang}`);
+  if (outPath) lines.push(`  ${i18n.labelOutput}: ${outPath}`);
+  lines.push(`  ${i18n.labelCache}: ${config.cachePath || i18n.noneValue}`);
+  lines.push(`  ${i18n.labelThresholds}: ${formatThresholdSummary(config, i18n)}`);
+  lines.push(`  ${i18n.labelLimit}: ${formatLimitValue(config.limit, i18n)}`);
+  lines.push(formatRunListLine(i18n.labelInclude, config.include, i18n));
+  lines.push(formatRunListLine(i18n.labelExclude, config.exclude, i18n));
+  lines.push(`  ${i18n.labelLanguage}: ${i18n.lang}`);
+  return lines;
+}
+
+function formatThresholdSummary(config, i18n) {
+  return `${i18n.thresholdsMinLabel} ${config.similarityThreshold} · ${i18n.thresholdsHighLabel} ${config.highSimilarityThreshold} · ${i18n.thresholdsMaxLabel} ${config.maxSimilarityThreshold ?? 1}`;
+}
+
+function formatLimitValue(limit, i18n) {
+  return typeof limit === 'number' && Number.isFinite(limit) ? limit : i18n.allValue;
+}
+
+function formatRunListLine(label, values, i18n) {
+  return `  ${label}: ${(values || []).join(', ') || i18n.noneSymbol}`;
 }
 
 function printMatches(report, config, entries, i18n) {
@@ -184,35 +195,49 @@ function printStatsTable(report, outPath, i18n) {
 function buildStatsRows(report, i18n) {
   const stats = report.stats || {};
   const scorecard = stats.scorecard || {};
-  const cache = stats.cache || {};
-  const cacheParts = [
-    cache.hits != null ? `${i18n.cacheHits} ${cache.hits}` : null,
-    cache.misses != null ? `${i18n.cacheMisses} ${cache.misses}` : null,
-    cache.cleaned != null ? `${i18n.cacheCleaned} ${cache.cleaned}` : null,
-    cache.uncachedCount != null ? `${i18n.cacheUncached} ${cache.uncachedCount}` : null,
-  ].filter(Boolean);
-  const timingParts = [
-    stats.scanMs != null ? `${i18n.timingScan} ${stats.scanMs}ms` : null,
-    stats.parseMs != null ? `${i18n.timingParse} ${stats.parseMs}ms` : null,
-    stats.embedMs != null ? `${i18n.timingEmbed} ${stats.embedMs}ms` : null,
-    stats.similarityMs != null ? `${i18n.timingSimilarity} ${stats.similarityMs}ms` : null,
-  ].filter(Boolean);
   const pairedCount = countPairedComponents(report.pairs);
   const componentCount = report.components.length;
-  const coveragePercent =
-    componentCount === 0 ? 0 : Math.round((pairedCount / componentCount) * 100);
   return [
     {
       label: i18n.statsMatchCoverage,
-      value: `${pairedCount}/${componentCount} (${coveragePercent}%)`,
+      value: formatCoverage(pairedCount, componentCount),
       emphasis: true,
     },
     { label: i18n.statsPairsReported, value: report.pairs.length },
     { label: i18n.statsPairsSuppressed, value: formatSuppression(scorecard, i18n) },
     { label: i18n.statsComponentsScanned, value: componentCount },
-    { label: i18n.statsTimings, value: timingParts.join(' | ') || i18n.notAvailable },
-    { label: i18n.statsCache, value: cacheParts.join(' | ') || i18n.notAvailable },
+    { label: i18n.statsTimings, value: formatMetricParts(buildTimingParts(stats, i18n), i18n) },
+    { label: i18n.statsCache, value: formatMetricParts(buildCacheParts(stats.cache, i18n), i18n) },
   ];
+}
+
+function buildTimingParts(stats, i18n) {
+  return [
+    stats.scanMs != null ? `${i18n.timingScan} ${stats.scanMs}ms` : null,
+    stats.parseMs != null ? `${i18n.timingParse} ${stats.parseMs}ms` : null,
+    stats.embedMs != null ? `${i18n.timingEmbed} ${stats.embedMs}ms` : null,
+    stats.similarityMs != null ? `${i18n.timingSimilarity} ${stats.similarityMs}ms` : null,
+  ];
+}
+
+function buildCacheParts(cache = {}, i18n) {
+  return [
+    cache.hits != null ? `${i18n.cacheHits} ${cache.hits}` : null,
+    cache.misses != null ? `${i18n.cacheMisses} ${cache.misses}` : null,
+    cache.cleaned != null ? `${i18n.cacheCleaned} ${cache.cleaned}` : null,
+    cache.uncachedCount != null ? `${i18n.cacheUncached} ${cache.uncachedCount}` : null,
+  ];
+}
+
+function formatMetricParts(parts, i18n) {
+  const filtered = parts.filter(Boolean);
+  return filtered.join(' | ') || i18n.notAvailable;
+}
+
+function formatCoverage(pairedCount, componentCount) {
+  const coveragePercent =
+    componentCount === 0 ? 0 : Math.round((pairedCount / componentCount) * 100);
+  return `${pairedCount}/${componentCount} (${coveragePercent}%)`;
 }
 
 function renderTable(rows) {

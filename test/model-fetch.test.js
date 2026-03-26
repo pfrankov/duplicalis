@@ -79,6 +79,7 @@ describe('model fetch', () => {
       return { on: vi.fn() };
     });
     await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(/500/);
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
   });
 
   it('handles network errors', async () => {
@@ -89,6 +90,27 @@ describe('model fetch', () => {
       },
     }));
     await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow('boom');
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
+  });
+
+  it('ignores duplicate request error notifications after settling', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
+    getMock.mockImplementation(() => {
+      const request = {
+        on(event, handler) {
+          if (event === 'error') {
+            process.nextTick(() => {
+              handler(new Error('boom'));
+              handler(new Error('boom again'));
+            });
+          }
+          return request;
+        },
+      };
+      return request;
+    });
+    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow('boom');
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
   });
 
   it('throws when model path is missing', async () => {
@@ -114,6 +136,7 @@ describe('model fetch', () => {
     await ensureModel(dir, 'https://example.com/model', false);
     expect(fs.existsSync(path.join(dir, 'onnx/model_quantized.onnx'))).toBe(true);
     expect(getMock).toHaveBeenCalledTimes(7); // first call redirects then retries
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
   });
 
   it('fails after too many redirects', async () => {
@@ -126,6 +149,66 @@ describe('model fetch', () => {
       process.nextTick(() => stream.end());
       return { on: vi.fn() };
     });
-    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(/Too many redirects/);
+    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(
+      /Too many redirects/
+    );
+  });
+
+  it('cleans up temp files when redirect handling fails while closing the temp file', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
+    const file = new PassThrough();
+    file.close = (cb) => cb(new Error('close failed'));
+    const streamSpy = vi.spyOn(fs, 'createWriteStream').mockReturnValue(file);
+    getMock.mockImplementation((url, cb) => {
+      const stream = new PassThrough();
+      stream.statusCode = 302;
+      stream.headers = { location: 'https://redirected/model' };
+      cb(stream);
+      process.nextTick(() => stream.end());
+      return { on: vi.fn() };
+    });
+    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(
+      'close failed'
+    );
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
+    streamSpy.mockRestore();
+  });
+
+  it('cleans up temp files when closing the downloaded file fails', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
+    const file = new PassThrough();
+    file.close = (cb) => cb(new Error('close failed'));
+    const streamSpy = vi.spyOn(fs, 'createWriteStream').mockReturnValue(file);
+    getMock.mockImplementation((url, cb) => {
+      const stream = new PassThrough();
+      stream.statusCode = 200;
+      cb(stream);
+      process.nextTick(() => stream.end('data'));
+      return { on: vi.fn() };
+    });
+    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(
+      'close failed'
+    );
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
+    streamSpy.mockRestore();
+  });
+
+  it('cleans up temp files when renaming the downloaded file fails', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
+    const renameSpy = vi
+      .spyOn(fs, 'rename')
+      .mockImplementation((_from, _to, cb) => cb(new Error('rename failed')));
+    getMock.mockImplementation((url, cb) => {
+      const stream = new PassThrough();
+      stream.statusCode = 200;
+      cb(stream);
+      process.nextTick(() => stream.end('data'));
+      return { on: vi.fn() };
+    });
+    await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(
+      'rename failed'
+    );
+    expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
+    renameSpy.mockRestore();
   });
 });

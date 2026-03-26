@@ -34,7 +34,7 @@ describe('styles', () => {
         color: red;
         padding: 4px;
       }
-      `,
+      `
     );
     const component = {
       styleImports: [cssPath],
@@ -50,7 +50,7 @@ describe('styles', () => {
     const component = {
       styleImports: [],
       classNames: [],
-      source: "const box = css`color: red;`",
+      source: 'const box = css`color: red;`',
     };
     const { styleText, hasCssInJs } = loadStyles(component, config);
     expect(styleText).toContain('color: red;');
@@ -111,7 +111,8 @@ describe('styles', () => {
     const component = {
       styleImports: ['./examples/Box'],
       classNames: [],
-      source: "import styles from './Box.css'; export const View = () => <div className={styles.base}>box</div>;",
+      source:
+        "import styles from './Box.css'; export const View = () => <div className={styles.base}>box</div>;",
     };
     const { styleText } = loadStyles(component, config);
     expect(styleText).toContain('base');
@@ -132,7 +133,8 @@ describe('styles', () => {
     const component = {
       styleImports: ['./examples/BoxAlt'],
       classNames: [],
-      source: "import styles from './BoxAlt.css'; const cls = styles['box-body']; export const View = () => <div className={styles['box-body']}>box</div>;",
+      source:
+        "import styles from './BoxAlt.css'; const cls = styles['box-body']; export const View = () => <div className={styles['box-body']}>box</div>;",
     };
     const { styleText } = loadStyles(component, config);
     expect(styleText).toContain('box-body');

@@ -26,12 +26,12 @@ describe('end-to-end run', () => {
     await run(config);
     const report = JSON.parse(fs.readFileSync(out, 'utf8'));
     const primarySecondary = report.pairs.find(
-      (p) => p.a.includes('PrimaryButton') && p.b.includes('SecondaryButton'),
+      (p) => p.a.includes('PrimaryButton') && p.b.includes('SecondaryButton')
     );
     expect(primarySecondary).toBeUndefined();
 
     const stylePair = report.pairs.find(
-      (p) => p.a.includes('StyleBox') && p.b.includes('StyleBoxAlt'),
+      (p) => p.a.includes('StyleBox') && p.b.includes('StyleBoxAlt')
     );
     expect(stylePair?.labels).toContain('style-duplicate');
 
@@ -39,7 +39,9 @@ describe('end-to-end run', () => {
     expect(wrapperPair).toBeDefined();
 
     expect(report.stats?.scorecard?.coveredComponents).toBeGreaterThan(0);
-    expect(report.stats?.scorecard?.suppressionReasons?.['wrapper-specialization']).toBeGreaterThan(0);
+    expect(report.stats?.scorecard?.suppressionReasons?.['wrapper-specialization']).toBeGreaterThan(
+      0
+    );
     const ids = report.components.map((c) => c.id);
     expect(ids.some((id) => id.includes('examples/Ignored.tsx'))).toBe(false);
   });
@@ -54,7 +56,7 @@ describe('end-to-end run', () => {
       import { Playground } from './Playground';
       export const KeepMe = () => <div>ok</div>;
       export const SkipMe = () => <Playground Component={KeepMe} />;
-      `,
+      `
     );
     const config = {
       root: dir,

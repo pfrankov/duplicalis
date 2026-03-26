@@ -3,6 +3,7 @@ import path from 'path';
 import https from 'https';
 import cliProgress from 'cli-progress';
 import { getI18n } from './i18n.js';
+import { createAtomicWriteTarget } from './fs-atomic.js';
 
 const DEFAULT_FILES = [
   'config.json',
@@ -31,7 +32,6 @@ export async function ensureModel(modelDir, modelRepo, showProgress = true, lang
   for (const file of missing) {
     const url = `${modelRepo}/${file}`;
     const dest = path.join(targetDir, file);
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
     await downloadFile(url, dest, i18n);
     completed += 1;
     if (bar) bar.update(completed);
@@ -42,41 +42,69 @@ export async function ensureModel(modelDir, modelRepo, showProgress = true, lang
 function downloadFile(url, dest, i18n, redirectCount = 0) {
   const MAX_REDIRECTS = 5;
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(dest);
-    https
-      .get(url, (res) => {
-        if (
-          res.statusCode &&
-          res.statusCode >= 300 &&
-          res.statusCode < 400 &&
-          res.headers.location
-        ) {
-          file.close();
-          fs.unlink(dest, () => {
-            if (redirectCount >= MAX_REDIRECTS) {
-              reject(new Error(`${i18n.errTooManyRedirectsPrefix} ${url}`));
-              return;
-            }
-            const nextUrl = new URL(res.headers.location, url).toString();
-            resolve(downloadFile(nextUrl, dest, i18n, redirectCount + 1));
-          });
-          return;
-        }
-        if (res.statusCode !== 200) {
-          file.close();
-          fs.unlink(dest, () =>
-            reject(new Error(`${i18n.errDownloadFailedPrefix} ${url}: ${res.statusCode}`))
+    const target = createAtomicWriteTarget(dest);
+    const file = fs.createWriteStream(target.tempPath);
+    let settled = false;
+
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+
+    const rejectWithCleanup = (error) => {
+      finish(() => target.cleanup(() => reject(error)));
+    };
+
+    const fail = (error) => {
+      closeWritable(file, (closeError) => rejectWithCleanup(closeError || error));
+    };
+
+    const request = https.get(url, (res) => {
+      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        closeWritable(file, (closeError) => {
+          if (closeError) {
+            rejectWithCleanup(closeError);
+            return;
+          }
+          if (redirectCount >= MAX_REDIRECTS) {
+            fail(new Error(`${i18n.errTooManyRedirectsPrefix} ${url}`));
+            return;
+          }
+          const nextUrl = new URL(res.headers.location, url).toString();
+          target.cleanup(() =>
+            finish(() => resolve(downloadFile(nextUrl, dest, i18n, redirectCount + 1)))
           );
+        });
+        return;
+      }
+      if (res.statusCode !== 200) {
+        fail(new Error(`${i18n.errDownloadFailedPrefix} ${url}: ${res.statusCode}`));
+        return;
+      }
+      res.pipe(file);
+    });
+
+    file.on('finish', () => {
+      closeWritable(file, (closeError) => {
+        if (closeError) {
+          rejectWithCleanup(closeError);
           return;
         }
-        res.pipe(file);
-        file.on('finish', () => {
-          file.close(resolve);
+        target.commit((renameError) => {
+          if (renameError) {
+            finish(() => reject(renameError));
+            return;
+          }
+          finish(resolve);
         });
-      })
-      .on('error', (err) => {
-        file.close();
-        fs.unlink(dest, () => reject(err));
       });
+    });
+    request.on('error', fail);
+    file.on('error', fail);
   });
+}
+
+function closeWritable(stream, callback) {
+  stream.close((error) => callback(error));
 }

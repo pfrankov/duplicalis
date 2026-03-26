@@ -11,7 +11,12 @@ vi.mock('cli-highlight', () => ({
 describe('output', () => {
   it('writes report even when no pairs are found', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-output-'));
-    const config = { root: dir, out: 'out.json', similarityThreshold: 0.5, highSimilarityThreshold: 0.9 };
+    const config = {
+      root: dir,
+      out: 'out.json',
+      similarityThreshold: 0.5,
+      highSimilarityThreshold: 0.9,
+    };
     const entries = [
       {
         component: { id: 'a#A', name: 'A', filePath: 'a', hooks: [], loc: null },
@@ -56,10 +61,25 @@ describe('output', () => {
       exclude: ['**/*.spec.tsx'],
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a', hooks: [], loc: null, source: 'const A = () => {};' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: 'b', hooks: [], loc: null, source: '' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: 'a',
+          hooks: [],
+          loc: null,
+          source: 'const A = () => {};',
+        },
+        styleText: '',
+      },
+      {
+        component: { id: 'b#B', name: 'B', filePath: 'b', hooks: [], loc: null, source: '' },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] }];
+    const pairs = [
+      { a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] },
+    ];
     const stats = {
       scanMs: 1,
       parseMs: 2,
@@ -108,7 +128,16 @@ describe('output', () => {
         styleText: '',
       },
     ];
-    const pairs = [{ a: 'a#A', b: 'missing#B', similarity: 0.95, category: 'almost-identical', labels: ['logic-duplicate'], hints: ['refactor'] }];
+    const pairs = [
+      {
+        a: 'a#A',
+        b: 'missing#B',
+        similarity: 0.95,
+        category: 'almost-identical',
+        labels: ['logic-duplicate'],
+        hints: ['refactor'],
+      },
+    ];
     const stats = {
       scanMs: 0,
       parseMs: 0,
@@ -141,10 +170,39 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: path.join(dir, 'a.tsx'), hooks: [], loc: null, source: '' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: path.join(dir, 'b.tsx'), hooks: [], loc: null, source: '' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: path.join(dir, 'a.tsx'),
+          hooks: [],
+          loc: null,
+          source: '',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'b#B',
+          name: 'B',
+          filePath: path.join(dir, 'b.tsx'),
+          hooks: [],
+          loc: null,
+          source: '',
+        },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: ['logic-duplicate', 'copy-paste-variant'], hints: [] }];
+    const pairs = [
+      {
+        a: 'a#A',
+        b: 'b#B',
+        similarity: 0.9,
+        category: 'near-duplicate',
+        labels: ['logic-duplicate', 'copy-paste-variant'],
+        hints: [],
+      },
+    ];
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     emitReport(entries, pairs, config);
     spy.mockRestore();
@@ -165,10 +223,32 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: path.join(dir, 'a.tsx'), hooks: [], loc: null, source: '' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: path.join(dir, 'b.tsx'), hooks: [], loc: null, source: '' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: path.join(dir, 'a.tsx'),
+          hooks: [],
+          loc: null,
+          source: '',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'b#B',
+          name: 'B',
+          filePath: path.join(dir, 'b.tsx'),
+          hooks: [],
+          loc: null,
+          source: '',
+        },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.8, category: 'near-duplicate', labels: [], hints: [] }];
+    const pairs = [
+      { a: 'a#A', b: 'b#B', similarity: 0.8, category: 'near-duplicate', labels: [], hints: [] },
+    ];
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     emitReport(entries, pairs, config);
     spy.mockRestore();
@@ -189,10 +269,32 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: 'const A = 1;' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: 'b.tsx', hooks: [], loc: null, source: 'const B = 2;' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: 'a.tsx',
+          hooks: [],
+          loc: null,
+          source: 'const A = 1;',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'b#B',
+          name: 'B',
+          filePath: 'b.tsx',
+          hooks: [],
+          loc: null,
+          source: 'const B = 2;',
+        },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] }];
+    const pairs = [
+      { a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] },
+    ];
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     emitReport(entries, pairs, config);
     spy.mockRestore();
@@ -208,7 +310,10 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: '' }, styleText: '' },
+      {
+        component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: '' },
+        styleText: '',
+      },
     ];
     const pairs = [
       { a: 'a#A', category: 'near-duplicate', similarity: 0.5, labels: [], hints: [] },
@@ -252,10 +357,18 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: '' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: 'b.tsx', hooks: [], loc: null, source: '' }, styleText: '' },
+      {
+        component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: '' },
+        styleText: '',
+      },
+      {
+        component: { id: 'b#B', name: 'B', filePath: 'b.tsx', hooks: [], loc: null, source: '' },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.5, category: 'near-duplicate', labels: [], hints: [] }];
+    const pairs = [
+      { a: 'a#A', b: 'b#B', similarity: 0.5, category: 'near-duplicate', labels: [], hints: [] },
+    ];
     const stats = {
       scorecard: {
         maxSimilarity: 0.5,
@@ -280,10 +393,32 @@ describe('output', () => {
       remote: {},
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a.css', hooks: [], loc: null, source: '.a { color: red; }' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: '', hooks: [], loc: null, source: 'const x = 1;' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: 'a.css',
+          hooks: [],
+          loc: null,
+          source: '.a { color: red; }',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'b#B',
+          name: 'B',
+          filePath: '',
+          hooks: [],
+          loc: null,
+          source: 'const x = 1;',
+        },
+        styleText: '',
+      },
     ];
-    const pairs = [{ a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] }];
+    const pairs = [
+      { a: 'a#A', b: 'b#B', similarity: 0.9, category: 'near-duplicate', labels: [], hints: [] },
+    ];
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     emitReport(entries, pairs, config);
     spy.mockRestore();
@@ -301,9 +436,39 @@ describe('output', () => {
       limit: 1,
     };
     const entries = [
-      { component: { id: 'a#A', name: 'A', filePath: 'a.tsx', hooks: [], loc: null, source: 'const A = 1;' }, styleText: '' },
-      { component: { id: 'b#B', name: 'B', filePath: 'b.tsx', hooks: [], loc: null, source: 'const B = 2;' }, styleText: '' },
-      { component: { id: 'c#C', name: 'C', filePath: 'c.tsx', hooks: [], loc: null, source: 'const C = 3;' }, styleText: '' },
+      {
+        component: {
+          id: 'a#A',
+          name: 'A',
+          filePath: 'a.tsx',
+          hooks: [],
+          loc: null,
+          source: 'const A = 1;',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'b#B',
+          name: 'B',
+          filePath: 'b.tsx',
+          hooks: [],
+          loc: null,
+          source: 'const B = 2;',
+        },
+        styleText: '',
+      },
+      {
+        component: {
+          id: 'c#C',
+          name: 'C',
+          filePath: 'c.tsx',
+          hooks: [],
+          loc: null,
+          source: 'const C = 3;',
+        },
+        styleText: '',
+      },
     ];
     const pairs = [
       { a: 'a#A', b: 'b#B', similarity: 0.99, category: 'almost-identical', labels: [], hints: [] },

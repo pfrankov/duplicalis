@@ -3,6 +3,7 @@
 ## Maintenance & Documentation
 
 - Keep AGENTS.md and README.md in lockstep with any meaningful behavior or UX change; prune stale details to keep both compact.
+- Keep the architecture diagram in README.md aligned with the actual code at all times. Direction is always code -> diagram: update the diagram after any factual architecture change, never the other way around.
 - Prioritize clear UX and documentation for a global audience (not just native English readers); keep CLI/report text transparent.
 - When you need external library/tool details, fetch official docs via the Context7 tool instead of ad-hoc searches.
 
@@ -37,19 +38,25 @@ The tool labels similarity matches with specific duplication classes:
 - **Parser mode is extension-aware**: `.ts` files are parsed without JSX to avoid angle-bracket TypeScript syntax being misread as JSX; `.tsx/.jsx/.js` keep JSX enabled.
 - **Path-agnostic embeddings**: File-system paths are excluded from the embedded representation so similarity scores reflect code/style only, not folder layout.
 - **Pluggable embedding backend**: Local model by default; remote API opt-in via env vars.
+- **Remote trust boundary is explicit**: Remote mode sends component representations to the configured embeddings endpoint; local mode keeps analysis on-box.
 - **O(n²) similarity acceptable**: For up to a few thousand components; basic mitigations (top-N neighbors, early pruning) applied.
 - **Style signals are scoped**: CSS is included only when we can map it to detected class names (including `styles.foo`/`styles['foo']`), keeping full matching rule blocks (selectors + declarations) plus CSS-in-JS snippets. Plain imports without class usage are ignored, style weights are zeroed when no style signal exists, and `style-duplicate` labels are skipped when similarity is explained solely by a shared stylesheet with no inline/unique styles.
 - **Cache cleanup is file-aware**: Cache entries keep the originating file path; cleanup removes only entries whose source files are gone and tolerates malformed cache keys.
 - **Style reads are memoized per run**: Stylesheets are read once per absolute path to keep scans fast when many components share the same CSS.
+- **Embedding work is memoized per run**: Identical component representations reuse the same in-memory embedding request within a single scan, reducing duplicate backend work before cache persistence.
+- **File discovery is deterministic**: Scans normalize, deduplicate, and sort discovered files so reports and cache behavior stay stable across runs.
 - **Stats favor signal over noise**: Console table highlights match coverage, reported/suppressed pairs (with top reasons), timings, and cache activity; low-value noise metrics stay out.
 - **Console banners**: Runs print a centered pixel banner plus a wordmark banner before the report; they are console-only and never written to output files.
 - **Compare mode**: `--compare <globs...>` marks “target” files; only target-vs-non-target pairs are reported (no target-vs-target or baseline-vs-baseline).
+- **Writes are atomic**: Cache/config/report files and downloaded model artifacts are written via temp-file swap, reducing partial-file corruption on interrupted runs.
 
 ## Project Structure & Module Organization
 
 - `bin/duplicalis.js` wires the executable and hands off to `src/cli.js`; `src/index.js` orchestrates scans, embeddings, similarity, and reporting.
 - Core modules live in `src/` (e.g., `scanner.js` for file discovery, `parser.js` for component extraction, `embedding/` for local/remote backends, `similarity.js` for scoring, `output.js` for report emission). Keep new utilities in this folder and favor single-purpose files.
+- Keep code files under 500 lines of cohesive code. Split by responsibility before files become long, mixed, or hard to scan.
 - Tests sit in `test/*.test.js` and mirror module names. Use `examples/` as fixtures for realistic component pairs. `coverage/` is generated output; `models/` stores the default ONNX embedding model.
+- Keep test files and test groupings under 500 lines of cohesive code as well; split oversized suites by behavior or module seam.
 - Runtime artifacts land in `.cache/duplicalis/embeddings.json`; keep it untracked. Configuration is read from `duplicalis.config.json` when present.
 
 ## Build, Test, and Development Commands
@@ -66,7 +73,7 @@ The tool labels similarity matches with specific duplication classes:
 
 - ES modules only (`type: module`); keep imports relative and explicit. Prefer kebab-case filenames in `src/` and lowerCamelCase symbols.
 - Prettier settings: 2-space indent, single quotes, trailing commas (es5), `printWidth: 100`. `.prettierignore` skips heavy assets (`models/`, `coverage/`, JSON).
-- ESLint: `eslint:recommended` plus `complexity` <= 10 and unused-arg ignore pattern `^_`. Console use is allowed.
+- ESLint: `eslint:recommended` plus `complexity` <= 10, `max-lines` <= 500 for code/test files (ignoring blank lines and comments), and unused-arg ignore pattern `^_`. Console use is allowed.
 - Husky + lint-staged auto-format `src/**/*.js` on commit; run format manually if touching other paths.
 - Add brief JSDoc on exported functions when behavior is non-obvious.
 
@@ -87,25 +94,33 @@ The tool labels similarity matches with specific duplication classes:
 - `dotenv` loads `.env`; notable vars: `MODEL` (`local|remote|mock`), `MODEL_PATH`, `MODEL_REPO`, `API_KEY`, `API_URL`, `API_MODEL`, `API_TIMEOUT`. Prefer `duplicalis.config.json` for repo-shared defaults, env vars for secrets.
 - Output language is set via `--lang` or `language` in `duplicalis.config.json` (`en`, `ru`, `es`, `fr`, `de`, `zh`).
 - Models are auto-downloaded when missing (`AUTO_DOWNLOAD_MODEL` true by default) and the download is memoized per process. When disabling auto-download, make sure a usable ONNX file lives under `<model>/onnx/`.
-- `--save-config` merges resolved run settings into the target config file (defaults to `<root>/duplicalis.config.json`).
+- `--save-config` merges resolved run settings into the target config file (defaults to `<root>/duplicalis.config.json`) but intentionally does not persist the resolved `root` or default derived `cachePath`, keeping saved configs portable across machines and worktrees.
 
 ### Embedding Backend Selection
 
-| Mode              | Description                                                   | When to use                                      |
-| :---------------- | :------------------------------------------------------------ | :----------------------------------------------- |
-| `local` (default) | Uses local ONNX model (`all-MiniLM-L6-v2`). No network calls. | Offline/privacy-sensitive environments.          |
-| `remote`          | OpenAI-compatible API. Requires `API_KEY`, `API_URL`.         | Better accuracy or when local model is too slow. |
-| `mock`            | Returns deterministic vectors.                                | Testing only.                                    |
+| Mode              | Description                                                                                                         | When to use                                      |
+| :---------------- | :------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------- |
+| `local` (default) | Uses local ONNX model (`all-MiniLM-L6-v2`). No network calls.                                                       | Offline/privacy-sensitive environments.          |
+| `remote`          | OpenAI-compatible API. Defaults to OpenAI `/v1/embeddings`; local Ollama-style endpoints can run without `API_KEY`. | Better accuracy or when local model is too slow. |
+| `mock`            | Returns deterministic vectors.                                                                                      | Testing only.                                    |
 
 ### Remote API Configuration
 
 ```bash
 export MODEL=remote
-export API_KEY=sk-...                    # Required
-export API_URL=https://api.openai.com    # Optional, defaults to OpenAI
+export API_KEY=sk-...                    # Required for OpenAI
+export API_URL=https://api.openai.com/v1/embeddings  # Optional, defaults to OpenAI embeddings endpoint
 export API_MODEL=text-embedding-3-small  # Optional
 export API_TIMEOUT=30000                 # Optional, milliseconds
 ```
+
+## Autonomous Review & Refactor Workflow
+
+- Prefer first-party installed review workflows (`security-best-practices`, `security-threat-model`, `security-ownership-map`) when changes touch remote I/O, model fetching, or other trust boundaries.
+- Preserve CLI flags, config schema, output shape, and duplication labels unless the user explicitly asks for an API change.
+- Fix declared guardrails first: failing lint, excessive complexity, misleading docs, or behavior that contradicts README.md/AGENTS.md.
+- Treat `MODEL=remote`, `API_URL`, `API_KEY`, `MODEL_REPO`, and model auto-download as trust boundaries; document any code-egress or supply-chain impact before changing them.
+- Prefer OpenAI-compatible `/v1/embeddings` endpoints for remote providers; local Ollama endpoints may be unauthenticated.
 
 ---
 
@@ -147,8 +162,9 @@ Key principles:
 
 ## Code Quality Principles
 
-- Functions should be extracted only when: (1) logic is used more than once, or (2) it encapsulates a non-trivial concept improving readability.
-- Avoid over-abstraction and "layers for the sake of layers"; prefer straightforward, readable code paths.
-- Variable and function names must be predictable, consistent, and self-explanatory.
+- Remove unnecessary abstractions, checks, branching, and code paths when they do not protect a real requirement.
+- Functions should usually be extracted only when logic is used more than once or when a dense concept becomes materially easier to read as a named unit.
+- Avoid over-abstraction and "layers for the sake of layers"; prefer direct, readable code paths.
+- Variable and function names should be short, clear, logical, and appropriate to their scope.
 - Cyclomatic complexity ≤ 10 per function (enforced via ESLint `complexity` rule).
 - 100% test coverage (lines, branches, functions, statements) enforced via Vitest + V8.

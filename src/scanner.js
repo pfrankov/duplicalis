@@ -13,5 +13,7 @@ export async function findSourceFiles(config) {
     onlyFiles: true,
     absolute: true,
   });
-  return files.map((file) => path.resolve(file));
+  return Array.from(new Set(files.map((file) => path.resolve(file)))).sort((a, b) =>
+    a.localeCompare(b)
+  );
 }

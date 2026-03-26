@@ -52,7 +52,8 @@ export default {
   errModelPathRequired: 'Modellpfad für Download erforderlich.',
   errTooManyRedirectsPrefix: 'Zu viele Weiterleitungen beim Download',
   errDownloadFailedPrefix: 'Download fehlgeschlagen',
-  errRemoteRequires: 'Remote-Modus benötigt API_URL und API_KEY.',
+  errRemoteRequires:
+    'Remote-Einbettungen benötigen einen API-Schlüssel für OpenAI oder eine explizite API_URL für einen kompatiblen lokalen Dienst.',
   errRemoteFailedPrefix: 'Remote-Embedding fehlgeschlagen:',
   errRemoteMissingEmbedding: 'Kein Embedding in der API-Antwort.',
   errLocalRequiresPath: 'Lokaler Modus benötigt modelPath.',

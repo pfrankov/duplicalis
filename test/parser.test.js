@@ -56,7 +56,7 @@ describe('parser', () => {
       class Another extends Component {
         render() { return <div>another</div>; }
       }
-      `,
+      `
     );
     const result = parseFile(file, baseConfig);
     const temp = result.components.find((c) => c.name === 'TempComp');
@@ -99,7 +99,7 @@ describe('parser', () => {
       type Bar = { value: string };
       const value = <Foo | Bar>source;
       export const helper = () => value;
-      `,
+      `
     );
     expect(() => parseFile(file, baseConfig)).not.toThrow();
     const result = parseFile(file, baseConfig);

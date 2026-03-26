@@ -41,7 +41,10 @@ describe('labels', () => {
   });
 
   it('labels forked clone when others disabled', () => {
-    const config = { ...baseConfig, disableAnalyses: ['logic-duplicate', 'copy-paste-variant', 'prop-parameterizable'] };
+    const config = {
+      ...baseConfig,
+      disableAnalyses: ['logic-duplicate', 'copy-paste-variant', 'prop-parameterizable'],
+    };
     const a = entry('A', 'line1\nline2\nline3\nline4\nline5', { logicTokens: [], literals: [] });
     const b = entry('B', 'line1', { logicTokens: [], literals: [] });
     const { labels } = labelPair(a, b, 0.85, config);

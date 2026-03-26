@@ -1,8 +1,8 @@
 import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import { encode, decode } from 'msgpackr';
 import { getI18n } from './i18n.js';
+import { writeFileAtomicSync } from './fs-atomic.js';
 
 const CACHE_VERSION = 1;
 
@@ -30,8 +30,7 @@ export function loadCache(cachePath, language) {
 
 export function saveCache(cachePath, cache) {
   if (!cachePath) return;
-  fs.mkdirSync(path.dirname(cachePath), { recursive: true });
-  fs.writeFileSync(cachePath, encode(cache));
+  writeFileAtomicSync(cachePath, encode(cache));
 }
 
 export function buildCacheKey(modelKey, componentId) {

@@ -52,7 +52,8 @@ export default {
   errModelPathRequired: 'Se requiere la ruta del modelo para la descarga.',
   errTooManyRedirectsPrefix: 'Demasiadas redirecciones descargando',
   errDownloadFailedPrefix: 'Fallo en la descarga de',
-  errRemoteRequires: 'El modo remoto requiere API_URL y API_KEY.',
+  errRemoteRequires:
+    'El modo remoto requiere una API key para OpenAI o una API_URL explícita para un servicio local compatible.',
   errRemoteFailedPrefix: 'Fallo en embedding remoto:',
   errRemoteMissingEmbedding: 'La respuesta remota no contiene el embedding.',
   errLocalRequiresPath: 'El modo local requiere modelPath.',

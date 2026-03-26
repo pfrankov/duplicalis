@@ -1,9 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { getI18n, resolveLanguage } from './i18n.js';
+import { writeFileAtomicSync } from './fs-atomic.js';
 
 export const IGNORE_FILE_MARKER = 'duplicalis-ignore-file';
 export const IGNORE_COMPONENT_MARKER = 'duplicalis-ignore-next';
+const DEFAULT_REMOTE_URL = 'https://api.openai.com/v1/embeddings';
 
 const DEFAULT_CONFIG = {
   root: process.cwd(),
@@ -26,7 +28,7 @@ const DEFAULT_CONFIG = {
   autoDownloadModel: process.env.AUTO_DOWNLOAD_MODEL !== 'false',
   compareGlobs: [],
   remote: {
-    url: process.env.API_URL || '',
+    url: process.env.API_URL || DEFAULT_REMOTE_URL,
     apiKey: process.env.API_KEY || '',
     model: process.env.API_MODEL || 'text-embedding-3-small',
     timeoutMs: Number(process.env.API_TIMEOUT || 15000),
@@ -44,7 +46,9 @@ const DEFAULT_CONFIG = {
 export function resolveConfigPath(root, configOption) {
   const resolvedRoot = root ? path.resolve(root) : process.cwd();
   return configOption
-    ? path.resolve(configOption)
+    ? path.isAbsolute(configOption)
+      ? configOption
+      : path.join(resolvedRoot, configOption)
     : path.join(resolvedRoot, 'duplicalis.config.json');
 }
 
@@ -128,7 +132,7 @@ function readConfigFile(configPath, language) {
 }
 
 function mergeArrays(...arrays) {
-  return arrays.filter(Boolean).flat();
+  return Array.from(new Set(arrays.filter(Boolean).flat()));
 }
 
 function mergeObjects(base, fromFile, fromCli) {
@@ -162,13 +166,11 @@ export function saveConfigFile(config, targetPath) {
   const resolvedPath = path.resolve(targetPath);
   const existing = stripUndefined(readConfigFile(resolvedPath));
   const merged = mergeObjects(existing, pickSavable(config));
-  fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
-  fs.writeFileSync(resolvedPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
+  writeFileAtomicSync(resolvedPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
   return resolvedPath;
 }
 
 const SAVABLE_KEYS = [
-  'root',
   'include',
   'exclude',
   'styleExtensions',
@@ -198,7 +200,18 @@ const SAVABLE_KEYS = [
 
 function pickSavable(config) {
   return SAVABLE_KEYS.reduce((acc, key) => {
+    if (shouldSkipSavableKey(config, key)) return acc;
     if (config[key] !== undefined) acc[key] = stripUndefined(config[key]);
     return acc;
   }, {});
+}
+
+function shouldSkipSavableKey(config, key) {
+  if (key !== 'cachePath') return false;
+  return config.cachePath === defaultCachePath(config.root);
+}
+
+function defaultCachePath(root) {
+  const resolvedRoot = root ? path.resolve(root) : process.cwd();
+  return path.join(resolvedRoot, '.cache', 'duplicalis', 'embeddings.json');
 }

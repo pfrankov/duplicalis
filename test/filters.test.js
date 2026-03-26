@@ -1,5 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-import * as filters from '../src/filters.js';
+import { describe, it, expect } from 'vitest';
 import { shouldIgnoreComponent, compilePatterns } from '../src/filters.js';
 
 describe('filters', () => {
@@ -8,7 +7,12 @@ describe('filters', () => {
     expect(patterns.length).toBe(1);
     const component = { name: 'SkipMe', jsxTags: [], componentRefs: [] };
     expect(shouldIgnoreComponent(component, { ignoreComponentNamePatterns: ['^Skip'] })).toBe(true);
-    expect(shouldIgnoreComponent({ ...component, name: 'KeepMe' }, { ignoreComponentNamePatterns: ['^Skip'] })).toBe(false);
+    expect(
+      shouldIgnoreComponent(
+        { ...component, name: 'KeepMe' },
+        { ignoreComponentNamePatterns: ['^Skip'] }
+      )
+    ).toBe(false);
   });
 
   it('ignores by usage tokens and allows multiple patterns', () => {
@@ -21,13 +25,13 @@ describe('filters', () => {
       shouldIgnoreComponent(component, {
         ignoreComponentNamePatterns: [],
         ignoreComponentUsagePatterns: ['Inner', '^Play'],
-      }),
+      })
     ).toBe(true);
     expect(
       shouldIgnoreComponent(component, {
         ignoreComponentNamePatterns: [],
         ignoreComponentUsagePatterns: ['Nope'],
-      }),
+      })
     ).toBe(false);
   });
 
@@ -38,7 +42,7 @@ describe('filters', () => {
       shouldIgnoreComponent(component, {
         ignoreComponentNamePatterns: [],
         ignoreComponentUsagePatterns: [],
-      }),
+      })
     ).toBe(false);
   });
 

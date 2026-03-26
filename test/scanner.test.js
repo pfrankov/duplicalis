@@ -19,4 +19,13 @@ describe('scanner', () => {
     });
     expect(files.length).toBeGreaterThan(0);
   });
+
+  it('returns files in stable sorted order', async () => {
+    const files = await findSourceFiles({
+      root: path.resolve('examples'),
+      exclude: [],
+    });
+    const sorted = [...files].sort((a, b) => a.localeCompare(b));
+    expect(files).toEqual(sorted);
+  });
 });
