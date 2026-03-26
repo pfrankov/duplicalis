@@ -9,3 +9,4 @@ dist
 *.log
 .cache
 .idea
+.DS_Store

@@ -5,7 +5,14 @@ import traverseImport from '@babel/traverse';
 import * as t from '@babel/types';
 import { IGNORE_COMPONENT_MARKER, IGNORE_FILE_MARKER } from './config.js';
 
-const JSX_PLUGINS = ['jsx', 'typescript', 'classProperties', 'objectRestSpread'];
+const BASE_PARSER_PLUGINS = [
+  'classProperties',
+  'classPrivateProperties',
+  'classPrivateMethods',
+  'objectRestSpread',
+];
+const TYPE_SCRIPT_EXTENSIONS = new Set(['.ts', '.tsx', '.cts', '.mts']);
+const JSX_EXTENSIONS = new Set(['.js', '.jsx', '.tsx', '.mjs', '.cjs']);
 const traverse = traverseImport.default || traverseImport;
 
 /**
@@ -20,7 +27,7 @@ export function parseFile(filePath, config) {
   if (config.allowIgnores && code.includes(IGNORE_FILE_MARKER)) {
     return { components: [], ignoredFile: true };
   }
-  const ast = parser.parse(code, { sourceType: 'module', plugins: JSX_PLUGINS });
+  const ast = parser.parse(code, getParserOptions(filePath));
   /* v8 ignore next */
   const styleImports = collectStyleImports(ast, filePath, config.styleExtensions || []);
   const components = [];
@@ -33,6 +40,25 @@ export function parseFile(filePath, config) {
   });
 
   return { components, ignoredFile: false };
+}
+
+function getParserOptions(filePath) {
+  return {
+    sourceType: 'unambiguous',
+    plugins: resolveParserPlugins(filePath),
+  };
+}
+
+function resolveParserPlugins(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const plugins = [...BASE_PARSER_PLUGINS];
+  if (TYPE_SCRIPT_EXTENSIONS.has(ext)) {
+    plugins.push('typescript');
+  }
+  if (JSX_EXTENSIONS.has(ext)) {
+    plugins.push('jsx');
+  }
+  return plugins;
 }
 
 function maybeBuildComponent(pathObj, code, filePath, styleImports, config) {

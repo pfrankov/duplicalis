@@ -88,4 +88,22 @@ describe('parser', () => {
     const result = parseFile(file, baseConfig);
     expect(result.components[0].name).toBe('DefaultComp');
   });
+
+  it('parses .ts files without forcing JSX mode', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-ts-only-'));
+    const file = path.join(dir, 'assertion.ts');
+    fs.writeFileSync(
+      file,
+      `
+      type Foo = { value: string };
+      type Bar = { value: string };
+      const value = <Foo | Bar>source;
+      export const helper = () => value;
+      `,
+    );
+    expect(() => parseFile(file, baseConfig)).not.toThrow();
+    const result = parseFile(file, baseConfig);
+    expect(result.ignoredFile).toBe(false);
+    expect(result.components.length).toBe(0);
+  });
 });
