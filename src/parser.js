@@ -70,10 +70,21 @@ function getParserOptions(filePath) {
   const isTypeScript = TYPE_SCRIPT_EXTENSIONS.has(ext);
   const jsx = JSX_EXTENSIONS.has(ext);
 
+  if (isTypeScript) {
+    return {
+      syntax: 'typescript',
+      tsx: jsx,
+      decorators: true,
+      comments: false,
+      target: 'es2020',
+    };
+  }
+
   return {
-    syntax: isTypeScript ? 'typescript' : 'ecmascript',
-    tsx: isTypeScript ? jsx : undefined,
-    jsx: isTypeScript ? undefined : jsx,
+    syntax: 'ecmascript',
+    jsx,
+    decorators: true,
+    decoratorsBeforeExport: true,
     comments: false,
     target: 'es2020',
   };

@@ -1,6 +1,6 @@
 {
   "name": "duplicalis",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "CLI to detect duplicate or near-duplicate React components (code + styles).",
   "type": "module",
   "main": "src/index.js",

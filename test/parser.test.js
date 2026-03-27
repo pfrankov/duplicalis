@@ -291,4 +291,68 @@ describe('parser', () => {
     expect(result.components[0].name).toBe('Widget');
     expect(result.components[0].jsxTags).toContain('section');
   });
+
+  it('parses .ts files that use decorated class fields', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-ts-decorators-'));
+    const file = path.join(dir, 'store.ts');
+    fs.writeFileSync(
+      file,
+      `
+      class ModalStore {
+        @observable
+        private currentModalDescriptor: string | null = null;
+      }
+
+      export const helper = () => new ModalStore();
+      `
+    );
+    expect(() => parseFile(file, baseConfig)).not.toThrow();
+    const result = parseFile(file, baseConfig);
+    expect(result.ignoredFile).toBe(false);
+    expect(result.components).toHaveLength(0);
+  });
+
+  it('parses .tsx files when decorated support classes coexist with components', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-tsx-decorators-'));
+    const file = path.join(dir, 'DecoratedWidget.tsx');
+    fs.writeFileSync(
+      file,
+      `
+      class ModalStore {
+        @observable
+        private currentModalDescriptor: string | null = null;
+      }
+
+      export function DecoratedWidget() {
+        return <section>ok</section>;
+      }
+      `
+    );
+    expect(() => parseFile(file, baseConfig)).not.toThrow();
+    const result = parseFile(file, baseConfig);
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].name).toBe('DecoratedWidget');
+  });
+
+  it('parses .js files with decorators before export on class components', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-js-decorators-'));
+    const file = path.join(dir, 'DecoratedExport.js');
+    fs.writeFileSync(
+      file,
+      `
+      import React from 'react';
+
+      @observer
+      export class DecoratedExport extends React.Component {
+        render() {
+          return <div>ok</div>;
+        }
+      }
+      `
+    );
+    expect(() => parseFile(file, baseConfig)).not.toThrow();
+    const result = parseFile(file, baseConfig);
+    expect(result.components).toHaveLength(1);
+    expect(result.components[0].name).toBe('DecoratedExport');
+  });
 });

@@ -35,7 +35,7 @@ The tool labels similarity matches with specific duplication classes:
 - **Imports treated as low-signal**: Import statements are normalized/summarized; they don't dominate similarity scores.
 - **Component as primary unit**: One component = one chunk. Multi-component files are handled separately.
 - **Semantic representation over raw text**: AST-based extraction preserves structure while ignoring irrelevant whitespace/comments.
-- **Parser mode is extension-aware**: Rust-backed SWC parsing keeps `.ts` files out of JSX mode to avoid angle-bracket TypeScript syntax being misread as JSX; `.tsx/.jsx/.js` keep JSX enabled.
+- **Parser mode is extension-aware and decorator-aware**: Rust-backed SWC parsing keeps `.ts` files out of JSX mode to avoid angle-bracket TypeScript syntax being misread as JSX; `.tsx/.jsx/.js` keep JSX enabled, and parser decorators stay on so MobX-style fields and other decorated classes do not break scans.
 - **Parser walk is single-pass**: Style imports and component metadata are collected in one SWC AST walk, and component source slices come from normalized node spans instead of repeated line splitting.
 - **Parsed analysis is cached persistently**: Parsed component metadata plus semantic representations are stored in a file-aware cache and invalidated when source files or dependent stylesheets change.
 - **Path-agnostic embeddings**: File-system paths are excluded from the embedded representation so similarity scores reflect code/style only, not folder layout.

@@ -29,7 +29,8 @@ It uses AI embeddings to understand structure even when variable names or format
 
 Parser mode follows file extensions: `.ts` files are parsed as TypeScript without JSX, while
 `.tsx/.jsx/.js` keep JSX enabled. This avoids false JSX parsing on valid TypeScript angle-bracket
-assertions and generics.
+assertions and generics. Decorators stay enabled for both TypeScript and JavaScript parser modes so
+MobX-style fields and other decorated classes in the same file do not break component scans.
 
 The parser now runs on Rust-backed SWC, stores parsed component metadata and semantic
 representations in a persistent analysis cache, and similarity matching can fan exact pair scoring
