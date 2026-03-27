@@ -45,6 +45,7 @@ function downloadFile(url, dest, i18n, redirectCount = 0) {
     const target = createAtomicWriteTarget(dest);
     const file = fs.createWriteStream(target.tempPath);
     let settled = false;
+    let shouldCommit = false;
 
     const finish = (callback) => {
       if (settled) return;
@@ -68,7 +69,7 @@ function downloadFile(url, dest, i18n, redirectCount = 0) {
             return;
           }
           if (redirectCount >= MAX_REDIRECTS) {
-            fail(new Error(`${i18n.errTooManyRedirectsPrefix} ${url}`));
+            rejectWithCleanup(new Error(`${i18n.errTooManyRedirectsPrefix} ${url}`));
             return;
           }
           const nextUrl = new URL(res.headers.location, url).toString();
@@ -82,10 +83,14 @@ function downloadFile(url, dest, i18n, redirectCount = 0) {
         fail(new Error(`${i18n.errDownloadFailedPrefix} ${url}: ${res.statusCode}`));
         return;
       }
+      shouldCommit = true;
       res.pipe(file);
     });
 
     file.on('finish', () => {
+      if (!shouldCommit || settled) {
+        return;
+      }
       closeWritable(file, (closeError) => {
         if (closeError) {
           rejectWithCleanup(closeError);

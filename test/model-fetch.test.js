@@ -154,6 +154,35 @@ describe('model fetch', () => {
     );
   });
 
+  it('ignores late finish events after redirect cleanup', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
+    const renameSpy = vi.spyOn(fs, 'rename');
+    const file = new PassThrough();
+    file.close = (cb) => {
+      cb();
+      process.nextTick(() => file.emit('finish'));
+    };
+    const streamSpy = vi.spyOn(fs, 'createWriteStream').mockReturnValue(file);
+    try {
+      getMock.mockImplementation((url, cb) => {
+        const stream = new PassThrough();
+        stream.statusCode = 302;
+        stream.headers = { location: url };
+        cb(stream);
+        process.nextTick(() => stream.end());
+        return { on: vi.fn() };
+      });
+      await expect(ensureModel(dir, 'https://example.com/model', false)).rejects.toThrow(
+        /Too many redirects/
+      );
+      expect(renameSpy).not.toHaveBeenCalled();
+      expect(fs.readdirSync(dir).every((name) => !name.includes('.tmp-'))).toBe(true);
+    } finally {
+      streamSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+  });
+
   it('cleans up temp files when redirect handling fails while closing the temp file', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-model-'));
     const file = new PassThrough();
