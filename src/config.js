@@ -67,8 +67,8 @@ export function loadConfig(cliOptions = {}) {
   if (!merged.analysisCachePath) {
     merged.analysisCachePath = defaultAnalysisCachePath(merged.cachePath);
   }
-  merged.weight = mergeObjects(DEFAULT_CONFIG.weight, fileConfig?.weight, cliOptions.weight);
-  merged.remote = mergeObjects(DEFAULT_CONFIG.remote, fileConfig?.remote, cliOptions.remote);
+  merged.weight = mergeObjects(DEFAULT_CONFIG.weight, fileConfig?.weight, cleanedCli.weight);
+  merged.remote = mergeObjects(DEFAULT_CONFIG.remote, fileConfig?.remote, cleanedCli.remote);
   merged.include = pick(cliOptions.include, fileConfig?.include, DEFAULT_CONFIG.include);
   merged.exclude = mergeArrays(DEFAULT_CONFIG.exclude, fileConfig?.exclude, cliOptions.exclude);
   merged.limit = pick(cliOptions.limit, fileConfig?.limit, DEFAULT_CONFIG.limit);

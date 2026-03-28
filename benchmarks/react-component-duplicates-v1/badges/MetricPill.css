@@ -1,0 +1,28 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #c6d4ef;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef3fb 100%);
+}
+
+.pillAccent {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #4c77d1;
+  box-shadow: 0 0 0 4px rgba(76, 119, 209, 0.12);
+}
+
+.pillLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f3768;
+}
+
+.pillMeta {
+  font-size: 12px;
+  color: #607091;
+}

@@ -3,8 +3,16 @@
 ## Maintenance & Documentation
 
 - Keep AGENTS.md and README.md in lockstep with any meaningful behavior or UX change; prune stale details to keep both compact.
+- Keep BENCHMARK.md aligned with benchmark suites, metrics, and snapshot tables. README should carry only the simplified benchmark summary and one link out to the full benchmark doc.
+- Keep ARCHITECTURE.md aligned with the actual code structure. README should keep only the simplified architecture diagram and link out to the fuller developer-oriented architecture doc.
 - Keep the architecture diagram in README.md aligned with the actual code at all times. Direction is always code -> diagram: update the diagram after any factual architecture change, never the other way around.
 - Prioritize clear UX and documentation for a global audience (not just native English readers); keep CLI/report text transparent.
+- Write all user-facing text for a global audience. Prefer short, plain English over dense prose, idioms, or culture-specific phrasing.
+- When any doc, README section, benchmark note, or user-facing explanation makes claims about external models, tools, metrics, benchmarks, or research, cite primary sources inline near the exact claim and do not make the wording stronger than the source supports.
+- In summaries, prefer one clear link to the deeper document instead of repeating the same link multiple times in nearby text.
+- Keep README.md easy to scan and easy to understand. If something can be explained simply, write it simply.
+- Keep README.md limited to the text users actually need. Push deeper methodology, edge cases, long rationale, and benchmark detail into separate docs instead of bloating the README.
+- Treat README.md like product-facing documentation: short, clear, practical. Treat detailed reference material the same way as code structure: move it into focused files when depth is required.
 - When you need external library/tool details, fetch official docs via the Context7 tool instead of ad-hoc searches.
 
 ## Tool Purpose & Problem Domain
@@ -48,6 +56,11 @@ The tool labels similarity matches with specific duplication classes:
 - **Cache cleanup is file-aware**: Cache entries keep the originating file path; cleanup removes only entries whose source files are gone and tolerates malformed cache keys.
 - **Style reads are memoized per run**: Stylesheets are read once per absolute path to keep scans fast when many components share the same CSS.
 - **Embedding work is memoized per run**: Identical component representations reuse the same in-memory embedding request within a single scan, reducing duplicate backend work before cache persistence.
+- **Bundled benchmark suite**: `benchmark` reuses the same component-analysis pipeline on a curated suite of positive pairs and hard negatives so embedding comparisons stay grounded in duplicate detection, not generic retrieval.
+- **Benchmark metrics separate raw ranking from reported output**: AP/MRR/Recall@K and separation gap (`min positive - max hard negative`) score the raw embedding space, while best-F1 threshold and hard-negative false positives are measured through the real similarity pipeline after suppression rules.
+- **Benchmark score balances threshold and ranking metrics**: The composite score weights F1 at 45%, AP at 30%, and hard-negative precision at 25% to avoid cliff effects on small test sets where a single pair crossing a threshold can swing F1 disproportionately.
+- **Wrapper specializations stay out of benchmark positives**: The current report pipeline intentionally suppresses thin wrapper specializations before labeling, so benchmark positives focus on pairs the CLI is actually expected to surface.
+- **Benchmark cache is isolated**: Benchmark runs store cache files under `.cache/duplicalis/benchmarks/<suite>/` by default so scan caches stay clean.
 - **File discovery is deterministic**: Scans normalize, deduplicate, and sort discovered files so reports and cache behavior stay stable across runs.
 - **Stats favor signal over noise**: Console table highlights match coverage, reported/suppressed pairs (with top reasons), timings, and cache activity; low-value noise metrics stay out.
 - **Console banners**: Runs print a centered pixel banner plus a wordmark banner before the report; they are console-only and never written to output files.
@@ -57,16 +70,17 @@ The tool labels similarity matches with specific duplication classes:
 ## Project Structure & Module Organization
 
 - `bin/duplicalis.js` wires the executable and hands off to `src/cli.js`; `src/index.js` orchestrates scans, embeddings, similarity, and reporting.
-- Core modules live in `src/` (e.g., `scanner.js` for file discovery, `parser.js` for component extraction, `embedding/` for local/remote backends, `similarity.js` for scoring, `output.js` for report emission). Keep new utilities in this folder and favor single-purpose files.
+- Core modules live in `src/` (e.g., `scanner.js` for file discovery, `parser.js` for component extraction, `embedding/` for local/remote backends, `similarity.js` for scoring, `output.js` for report emission, `benchmark*.js` for suite loading/metrics/reporting). Keep new utilities in this folder and favor single-purpose files.
 - Keep code files under 500 lines of cohesive code. Split by responsibility before files become long, mixed, or hard to scan.
-- Tests sit in `test/*.test.js` and mirror module names. Use `examples/` as fixtures for realistic component pairs. `coverage/` is generated output; `models/` stores the default ONNX embedding model.
+- Tests sit in `test/*.test.js` and mirror module names. Use `examples/` as fixtures for scan behavior and `benchmarks/react-component-duplicates-v1/` for benchmark corpus coverage. `coverage/` is generated output; `models/` stores the default ONNX embedding model.
 - Keep test files and test groupings under 500 lines of cohesive code as well; split oversized suites by behavior or module seam.
-- Runtime artifacts land in `.cache/duplicalis/embeddings.json` and `.cache/duplicalis/analysis.msgpack`; keep them untracked. Configuration is read from `duplicalis.config.json` when present.
+- Runtime artifacts land in `.cache/duplicalis/embeddings.json`, `.cache/duplicalis/analysis.msgpack`, and `.cache/duplicalis/benchmarks/<suite>/`; keep them untracked. Configuration is read from `duplicalis.config.json` when present.
 
 ## Build, Test, and Development Commands
 
 - `npm install` to bootstrap.
 - `npm start` shows CLI help; typical local run: `node ./bin/duplicalis.js scan examples --threshold 0.9`.
+- `npm run benchmark -- --api-url https://openrouter.ai/api/v1/embeddings --no-progress` runs the bundled benchmark against the default local + remote shortlist. Use `--models <list...>` or `--manifest <path>` to narrow or replace the suite.
 - `npm run lint` (ESLint rules + complexity guard), `npm run format` / `npm run format:check` (Prettier over `src/**/*.js`).
 - `npm test` or `npm run coverage` runs Vitest with V8 coverage thresholds enforced.
 - Tests must stay self-contained in CI; do not rely on a pre-downloaded `models/all-MiniLM-L6-v2` tree when a temporary fixture or mock is enough.
@@ -99,6 +113,7 @@ The tool labels similarity matches with specific duplication classes:
 - Output language is set via `--lang` or `language` in `duplicalis.config.json` (`en`, `ru`, `es`, `fr`, `de`, `zh`).
 - Models are auto-downloaded when missing (`AUTO_DOWNLOAD_MODEL` true by default) and the download is memoized per process. When disabling auto-download, make sure a usable ONNX file lives under `<model>/onnx/`.
 - `--save-config` merges resolved run settings into the target config file (defaults to `<root>/duplicalis.config.json`) but intentionally does not persist the resolved `root` or default derived `cachePath`, keeping saved configs portable across machines and worktrees.
+- `benchmark` defaults to the bundled `react-component-duplicates-v1` suite and the curated shortlist `local`, `text-embedding-3-small`, `text-embedding-3-large`, `gemini-embedding-001`, `qwen3-embedding-8b`, `bge-m3`, `multilingual-e5-large`, and `all-mpnet-base-v2`.
 
 ### Embedding Backend Selection
 

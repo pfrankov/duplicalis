@@ -100,4 +100,25 @@ export default {
   cliOptSaveConfig: 'Сохранить текущие настройки в duplicalis.config.json или по указанному пути',
   cliOptNoIgnores: 'Игнорировать комментарии исключения в коде',
   cliOptLang: 'Язык вывода (en, ru, es, fr, de, zh)',
+  cliBenchmarkDescription:
+    'Сравнить модели эмбеддингов на подготовленном наборе для поиска дубликатов',
+  cliOptBenchmarkManifest: 'Путь к JSON-манифесту benchmark-набора',
+  cliOptBenchmarkModels:
+    'Идентификаторы или алиасы моделей для benchmark (по умолчанию curated shortlist)',
+  benchmarkTitle: 'Benchmark моделей эмбеддингов',
+  benchmarkSuiteLabel: 'набор',
+  benchmarkDatasetLabel: 'датасет',
+  benchmarkComponentsLabel: 'компонентов',
+  benchmarkPairsLabel: 'пар',
+  benchmarkPositivesLabel: 'положительных пар',
+  benchmarkHardNegativesLabel: 'сложных негативов',
+  benchmarkMetricNote:
+    'AP/MRR/R@K/gap оценивают сырое пространство эмбеддингов. Best F1 и hard-negative FP используют реальный similarity pipeline после правил suppression.',
+  benchmarkModelLabel: 'модель',
+  benchmarkScoreLabel: 'оценка',
+  benchmarkBestF1Label: 'лучший F1',
+  benchmarkThresholdLabel: 'лучший τ',
+  benchmarkGapLabel: 'gap',
+  benchmarkHardNegFpLabel: 'FP hard-neg',
+  benchmarkOutputWrittenPrefix: 'Benchmark JSON записан в',
 };

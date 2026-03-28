@@ -5,6 +5,7 @@ import { pathToFileURL } from 'url';
 import { loadConfig, resolveConfigPath, saveConfigFile } from './config.js';
 import { getI18n, resolveLanguageFromArgv } from './i18n.js';
 import { run } from './index.js';
+import { runBenchmark } from './benchmark.js';
 
 dotenv.config();
 
@@ -65,6 +66,36 @@ export function createProgram(argv = process.argv) {
       await run(config);
     });
 
+  program
+    .command('benchmark')
+    .description(i18n.cliBenchmarkDescription)
+    .option('-o, --out <path>', i18n.cliOptOut)
+    .option('--manifest <path>', i18n.cliOptBenchmarkManifest)
+    .option('--models <list...>', i18n.cliOptBenchmarkModels)
+    .option('--model-path <path>', i18n.cliOptModelPath)
+    .option('--model-repo <url>', i18n.cliOptModelRepo)
+    .option('--auto-download-model', i18n.cliOptAutoDownloadModel)
+    .option('--cache-path <path>', i18n.cliOptCachePath)
+    .option('--no-progress', i18n.cliOptNoProgress)
+    .option('--api-url <url>', i18n.cliOptApiUrl)
+    .option('--api-key <key>', i18n.cliOptApiKey)
+    .option('--api-timeout <ms>', i18n.cliOptApiTimeout, parseInt)
+    .option('--config <path>', i18n.cliOptConfig)
+    .option('--lang <code>', i18n.cliOptLang)
+    .action(async (opts, command) => {
+      const root = process.cwd();
+      const configPath = resolveConfigPath(root, opts.config);
+      const cliOptions = buildBenchmarkCliOptions(opts, command, root);
+      const config = loadConfig({ ...cliOptions, config: configPath });
+      await runBenchmark(config, {
+        manifestPath: opts.manifest,
+        models: opts.models,
+        outPath: opts.out ? path.resolve(root, opts.out) : null,
+        cachePath: opts.cachePath ? path.resolve(root, opts.cachePath) : null,
+        i18n,
+      });
+    });
+
   return program;
 }
 
@@ -107,6 +138,23 @@ function buildCliOptions(opts, command, root) {
       url: opts.apiUrl,
       apiKey: opts.apiKey,
       model: opts.apiModel,
+      timeoutMs: opts.apiTimeout,
+    },
+  };
+}
+
+function buildBenchmarkCliOptions(opts, command, root) {
+  return {
+    root,
+    modelPath: opts.modelPath,
+    modelRepo: opts.modelRepo,
+    autoDownloadModel: opts.autoDownloadModel,
+    cachePath: opts.cachePath,
+    showProgress: readCliBooleanOverride(command, 'progress', opts.progress),
+    language: opts.lang,
+    remote: {
+      url: opts.apiUrl,
+      apiKey: opts.apiKey,
       timeoutMs: opts.apiTimeout,
     },
   };

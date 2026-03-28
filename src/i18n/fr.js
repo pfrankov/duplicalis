@@ -100,4 +100,25 @@ export default {
   cliOptSaveConfig: 'Sauvegarder la config actuelle',
   cliOptNoIgnores: 'Ignorer les commentaires d’exclusion',
   cliOptLang: 'Langue (en, ru, es, fr, de, zh)',
+  cliBenchmarkDescription:
+    'Benchmarker des modèles d’embedding sur une suite de détection de doublons sélectionnée',
+  cliOptBenchmarkManifest: 'Chemin vers un fichier JSON de manifeste de benchmark',
+  cliOptBenchmarkModels:
+    'Identifiants ou alias des modèles de benchmark (par défaut : la shortlist sélectionnée)',
+  benchmarkTitle: 'Benchmark des modèles d’embedding',
+  benchmarkSuiteLabel: 'suite',
+  benchmarkDatasetLabel: 'jeu de données',
+  benchmarkComponentsLabel: 'composants',
+  benchmarkPairsLabel: 'paires',
+  benchmarkPositivesLabel: 'paires positives',
+  benchmarkHardNegativesLabel: 'négatifs difficiles',
+  benchmarkMetricNote:
+    'AP/MRR/R@K/gap mesurent l’espace brut des embeddings. Best F1 et les FP hard-negative utilisent la vraie pipeline de similarité après les règles de suppression.',
+  benchmarkModelLabel: 'modèle',
+  benchmarkScoreLabel: 'score',
+  benchmarkBestF1Label: 'meilleur F1',
+  benchmarkThresholdLabel: 'meilleur τ',
+  benchmarkGapLabel: 'gap',
+  benchmarkHardNegFpLabel: 'FP hard-neg',
+  benchmarkOutputWrittenPrefix: 'JSON de benchmark enregistré sous',
 };

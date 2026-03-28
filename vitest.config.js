@@ -14,7 +14,9 @@ export default defineConfig({
         statements: 100,
       },
       exclude: [
+        'benchmarks/**',
         'examples/**',
+        'scripts/**',
         'bin/**',
         '**/*.config.*',
         '**/.eslintrc.*',

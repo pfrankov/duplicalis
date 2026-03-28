@@ -121,6 +121,32 @@ describe('cli', () => {
     expect(fs.existsSync(out)).toBe(true);
   });
 
+  it('runs the benchmark command with a mock model', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-benchmark-cli-'));
+    const out = path.join(dir, 'benchmark.json');
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await runCli([
+      'node',
+      'duplicalis',
+      'benchmark',
+      '--models',
+      'mock',
+      '--out',
+      out,
+      '--cache-path',
+      path.join(dir, 'cache.json'),
+      '--no-progress',
+    ]);
+    spy.mockRestore();
+    expect(fs.existsSync(out)).toBe(true);
+  });
+
+  it('runs the benchmark command without optional output paths', async () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await runCli(['node', 'duplicalis', 'benchmark', '--models', 'mock', '--no-progress']);
+    spy.mockRestore();
+  });
+
   it('persists config when --save-config is passed', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-cli-'));
     const out = path.join(dir, 'cli-report.json');

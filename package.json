@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node ./bin/duplicalis.js --help",
+    "benchmark": "node ./bin/duplicalis.js benchmark",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.js\"",
     "format:check": "prettier --check \"src/**/*.js\"",
@@ -33,7 +34,12 @@
   },
   "homepage": "https://github.com/pfrankov/duplicalis#readme",
   "files": [
+    "ARCHITECTURE.md",
     "bin/",
+    "BENCHMARK.md",
+    "CONFIGURATION.md",
+    "RELEASE.md",
+    "benchmarks/",
     "src/",
     "README.md",
     "LICENSE"

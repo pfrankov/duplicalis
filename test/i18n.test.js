@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getI18n, resolveLanguage, resolveLanguageFromArgv, SUPPORTED_LANGS } from '../src/i18n.js';
+import en from '../src/i18n/en.js';
 
 describe('i18n', () => {
   it('normalizes and resolves language codes', () => {
@@ -23,5 +24,15 @@ describe('i18n', () => {
     const fallback = getI18n('xx');
     expect(fallback.lang).toBe('en');
     expect(SUPPORTED_LANGS).toContain('es');
+  });
+
+  it('keeps all locales aligned with the english key set', () => {
+    const expectedKeys = Object.keys(en).sort();
+    SUPPORTED_LANGS.filter((lang) => lang !== 'en').forEach((lang) => {
+      const keys = Object.keys(getI18n(lang))
+        .filter((key) => key !== 'lang')
+        .sort();
+      expect(keys).toEqual(expectedKeys);
+    });
   });
 });

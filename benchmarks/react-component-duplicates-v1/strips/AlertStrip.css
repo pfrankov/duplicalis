@@ -1,0 +1,44 @@
+.strip {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #f1d1ce;
+  background: linear-gradient(180deg, #fffdfd 0%, #fdf4f3 100%);
+}
+
+.stripHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.stripTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #7b2c24;
+}
+
+.stripMeta {
+  font-size: 12px;
+  color: #9d615b;
+}
+
+.stripList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stripRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stripValue {
+  font-weight: 600;
+  color: #c0574b;
+}

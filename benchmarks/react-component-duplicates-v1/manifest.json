@@ -1,0 +1,193 @@
+{
+  "id": "react-component-duplicates-v1",
+  "name": "React component duplicate benchmark",
+  "description": "Curated React component pairs for duplicate and near-duplicate detection.",
+  "include": ["**/*.tsx"],
+  "styleExtensions": [".css"],
+  "duplicateGroups": [
+    {
+      "id": "cta-actions",
+      "label": "prop-parameterizable",
+      "components": [
+        "actions/CheckoutButton.tsx#CheckoutButton",
+        "actions/BillingButton.tsx#BillingButton",
+        "actions/TrialButton.tsx#TrialButton"
+      ]
+    },
+    {
+      "id": "summary-cards",
+      "label": "copy-paste-variant",
+      "components": [
+        "cards/PricingSummaryCard.tsx#PricingSummaryCard",
+        "cards/PlanOverviewCard.tsx#PlanOverviewCard"
+      ]
+    },
+    {
+      "id": "filter-panels",
+      "label": "logic-duplicate",
+      "components": [
+        "lists/UserFilterPanel.tsx#UserFilterPanel",
+        "lists/ContributorFilterPanel.tsx#ContributorFilterPanel"
+      ]
+    },
+    {
+      "id": "status-pills",
+      "label": "style-duplicate",
+      "components": [
+        "badges/StatusPill.tsx#StatusPill",
+        "badges/MetricPill.tsx#MetricPill"
+      ]
+    },
+    {
+      "id": "data-tables",
+      "label": "forked-clone",
+      "components": [
+        "tables/TeamMemberTable.tsx#TeamMemberTable",
+        "tables/ContributorTable.tsx#ContributorTable"
+      ]
+    },
+    {
+      "id": "empty-states",
+      "label": "prop-parameterizable",
+      "components": [
+        "empty/NoInvoicesState.tsx#NoInvoicesState",
+        "empty/NoOrdersState.tsx#NoOrdersState"
+      ]
+    },
+    {
+      "id": "setting-toggles",
+      "label": "logic-duplicate",
+      "components": [
+        "settings/FeatureFlagToggle.tsx#FeatureFlagToggle",
+        "settings/PermissionToggle.tsx#PermissionToggle"
+      ]
+    },
+    {
+      "id": "destructive-dialogs",
+      "label": "prop-parameterizable",
+      "components": [
+        "dialogs/ArchiveProjectDialog.tsx#ArchiveProjectDialog",
+        "dialogs/DeleteWorkspaceDialog.tsx#DeleteWorkspaceDialog"
+      ]
+    },
+    {
+      "id": "sync-panels-v2",
+      "label": "logic-duplicate",
+      "components": [
+        "sync/InvoiceSyncPanel.tsx#InvoiceSyncPanel",
+        "sync/CatalogSyncPanel.tsx#CatalogSyncPanel",
+        "sync/UploadQueuePanel.tsx#UploadQueuePanel"
+      ]
+    },
+    {
+      "id": "drawer-summaries",
+      "label": "forked-clone",
+      "components": [
+        "drawers/InvoiceDrawerSummary.tsx#InvoiceDrawerSummary",
+        "drawers/OrderDrawerSummary.tsx#OrderDrawerSummary",
+        "drawers/ActivityDrawerSummary.tsx#ActivityDrawerSummary"
+      ]
+    },
+    {
+      "id": "event-timelines",
+      "label": "forked-clone",
+      "components": [
+        "timelines/ReleaseTimeline.tsx#ReleaseTimeline",
+        "timelines/IncidentTimeline.tsx#IncidentTimeline",
+        "timelines/NotificationsTimeline.tsx#NotificationsTimeline"
+      ]
+    },
+    {
+      "id": "status-strips",
+      "label": "style-duplicate",
+      "components": [
+        "strips/HealthStrip.tsx#HealthStrip",
+        "strips/CapacityStrip.tsx#CapacityStrip",
+        "strips/AlertStrip.tsx#AlertStrip"
+      ]
+    }
+  ],
+  "hardNegativePairs": [
+    {
+      "a": "lists/UserFilterPanel.tsx#UserFilterPanel",
+      "b": "forms/SearchForm.tsx#SearchForm",
+      "reason": "Both expose a search box and chips, but one filters a list and the other submits a form."
+    },
+    {
+      "a": "lists/ContributorFilterPanel.tsx#ContributorFilterPanel",
+      "b": "forms/SearchForm.tsx#SearchForm",
+      "reason": "Both render filters and counts, but the interaction model is different."
+    },
+    {
+      "a": "settings/FeatureFlagToggle.tsx#FeatureFlagToggle",
+      "b": "navigation/TabSwitcher.tsx#TabSwitcher",
+      "reason": "Both map buttons over options, but one mutates settings and the other swaps content."
+    },
+    {
+      "a": "settings/PermissionToggle.tsx#PermissionToggle",
+      "b": "navigation/TabSwitcher.tsx#TabSwitcher",
+      "reason": "Both share segmented-control structure, but only one is a settings editor."
+    },
+    {
+      "a": "empty/NoInvoicesState.tsx#NoInvoicesState",
+      "b": "panels/AlertBanner.tsx#AlertBanner",
+      "reason": "Both are informational panels, but the banner is transient status messaging."
+    },
+    {
+      "a": "empty/NoOrdersState.tsx#NoOrdersState",
+      "b": "panels/AlertBanner.tsx#AlertBanner",
+      "reason": "Both show title, text, and actions, but the product intent is different."
+    },
+    {
+      "a": "cards/PricingSummaryCard.tsx#PricingSummaryCard",
+      "b": "empty/NoInvoicesState.tsx#NoInvoicesState",
+      "reason": "Both are card-like layouts with heading and CTA, but one summarizes revenue and the other handles an empty state."
+    },
+    {
+      "a": "cards/PlanOverviewCard.tsx#PlanOverviewCard",
+      "b": "empty/NoOrdersState.tsx#NoOrdersState",
+      "reason": "Both are stacked info cards, but the user task is unrelated."
+    },
+    {
+      "a": "badges/StatusPill.tsx#StatusPill",
+      "b": "panels/AlertBanner.tsx#AlertBanner",
+      "reason": "Both encode status visually, but they are different component shapes and responsibilities."
+    },
+    {
+      "a": "tables/TeamMemberTable.tsx#TeamMemberTable",
+      "b": "lists/UserFilterPanel.tsx#UserFilterPanel",
+      "reason": "Both can filter people collections, but one is a data table and the other is a filter shell."
+    },
+    {
+      "a": "dialogs/ArchiveProjectDialog.tsx#ArchiveProjectDialog",
+      "b": "dialogs/TransferOwnershipDialog.tsx#TransferOwnershipDialog",
+      "reason": "Both are destructive account dialogs, but one archives a project and the other transfers long-lived responsibilities."
+    },
+    {
+      "a": "dialogs/DeleteWorkspaceDialog.tsx#DeleteWorkspaceDialog",
+      "b": "dialogs/TransferOwnershipDialog.tsx#TransferOwnershipDialog",
+      "reason": "Both are admin dialogs with approvals, but the action model is different."
+    },
+
+    {
+      "a": "drawers/InvoiceDrawerSummary.tsx#InvoiceDrawerSummary",
+      "b": "cards/PricingSummaryCard.tsx#PricingSummaryCard",
+      "reason": "Both summarize billing numbers, but one is a transaction drawer and the other is a portfolio overview card."
+    },
+    {
+      "a": "drawers/OrderDrawerSummary.tsx#OrderDrawerSummary",
+      "b": "cards/PlanOverviewCard.tsx#PlanOverviewCard",
+      "reason": "Both show totals and owners, but the surrounding workflow is different."
+    },
+    {
+      "a": "dialogs/ArchiveProjectDialog.tsx#ArchiveProjectDialog",
+      "b": "panels/AlertBanner.tsx#AlertBanner",
+      "reason": "Both warn about a risky state, but one is a decision dialog and the other is a transient banner."
+    },
+    {
+      "a": "dialogs/DeleteWorkspaceDialog.tsx#DeleteWorkspaceDialog",
+      "b": "panels/AlertBanner.tsx#AlertBanner",
+      "reason": "Both contain urgent copy and actions, but only one is a destructive confirmation flow."
+    }
+  ]
+}
