@@ -33,7 +33,7 @@ export function mergeSimilarityStates(states = []) {
 
   states.forEach((state) => {
     /* v8 ignore next */
-    merged.pairs.push(...(state.pairs || []));
+    for (const p of state.pairs || []) merged.pairs.push(p);
     /* v8 ignore next */
     merged.checked += state.checked || 0;
     /* v8 ignore next */

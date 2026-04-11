@@ -23,7 +23,7 @@ export function loadComponentsWithCache(files, config) {
     const cached = hydrateCachedFile(filePath, configFingerprint, cache, fileStateMemo);
     if (cached) {
       stats.hits += 1;
-      components.push(...cached);
+      for (const c of cached) components.push(c);
       return;
     }
 
@@ -33,7 +33,7 @@ export function loadComponentsWithCache(files, config) {
     );
     cache.files[filePath] = buildFileEntry(filePath, parsed, configFingerprint, fileStateMemo);
     dirty = true;
-    components.push(...parsed);
+    for (const c of parsed) components.push(c);
   });
 
   if (dirty || cleaned > 0) {

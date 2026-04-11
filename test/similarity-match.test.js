@@ -382,6 +382,20 @@ describe('similarity matching', () => {
     expect(result.pairs).toHaveLength(1);
   });
 
+  it('merges states with very large pair arrays without stack overflow', () => {
+    const largePairs = Array.from({ length: 500_000 }, (_, i) => ({
+      a: `A${i}`,
+      b: `B${i}`,
+      similarity: 0.9,
+      category: 'near-duplicate',
+      labels: [],
+      hints: [],
+    }));
+    const states = [{ pairs: largePairs, best: {}, checked: 0, sum: 0, max: 0, suppressed: 0, reasons: {} }];
+    const merged = mergeSimilarityStates(states);
+    expect(merged.pairs).toHaveLength(500_000);
+  });
+
   it('merges partial worker states deterministically', () => {
     const merged = mergeSimilarityStates([
       {
