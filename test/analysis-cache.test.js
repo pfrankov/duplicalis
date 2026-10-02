@@ -54,7 +54,7 @@ describe('analysis cache', () => {
     fs.writeFileSync(cachePath, JSON.stringify({ version: 0, files: { stale: true } }));
     expect(loadAnalysisCache(cachePath).files).toEqual({});
 
-    saveAnalysisCache(cachePath, { version: 1, files: { ok: {} } });
+    saveAnalysisCache(cachePath, { version: 2, files: { ok: {} } });
     expect(loadAnalysisCache(cachePath).files.ok).toBeDefined();
   });
 

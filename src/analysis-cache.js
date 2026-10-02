@@ -7,7 +7,7 @@ import { parseFile } from './parser.js';
 import { clearStyleCache } from './styles.js';
 import { ensureComponentAnalysis, sameFileState, snapshotFileState } from './component-analysis.js';
 
-const ANALYSIS_CACHE_VERSION = 1;
+const ANALYSIS_CACHE_VERSION = 2;
 
 export function loadComponentsWithCache(files, config) {
   clearStyleCache();

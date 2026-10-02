@@ -174,6 +174,9 @@ npx duplicalis scan
 npx duplicalis scan --no-progress --out report.json
 ```
 
+Reports preserve component snippets and source locations, including files with leading comments
+or Unicode text.
+
 ### 5. Save Your Defaults
 
 ```bash

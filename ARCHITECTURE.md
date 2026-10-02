@@ -64,13 +64,15 @@ This file is the fuller architecture reference for people working on `duplicalis
 
 - Finds source files deterministically
 - Parses React components with SWC
+- Maps [SWC byte spans](https://rustdoc.swc.rs/swc_common/struct.Span.html) to original component snippets and one-based lines with zero-based UTF-16 columns; leading comments, a BOM, and Unicode text do not shift the ranges
 - Extracts props, hooks, JSX structure, literals, component refs, and styles
 - Builds semantic text representations used for embeddings
 
 ### Analysis Cache
 
 - Stores parsed component metadata and semantic representations
-- Invalidates entries when source files or dependent style files change
+- Invalidates entries when source files, dependent style files, or the analysis-cache version change
+- Cache version 2 rebuilds parsed metadata and representations created with the old source-span mapping; changed representations also invalidate their embedding fingerprints
 
 ### Embedding Layer
 
