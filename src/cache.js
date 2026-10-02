@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { encode, decode } from 'msgpackr';
 import { getI18n } from './i18n.js';
 import { writeFileAtomicSync } from './fs-atomic.js';
+import { normalizeRemoteUrl } from './embedding/remote.js';
 
 const CACHE_VERSION = 1;
 
@@ -38,7 +39,10 @@ export function buildCacheKey(modelKey, componentId) {
 }
 
 export function modelKey(config) {
-  if (config.model === 'remote') return `remote:${config.remote?.model || ''}`;
+  if (config.model === 'remote') {
+    const identity = [normalizeRemoteUrl(config.remote?.url), config.remote?.model || ''];
+    return `remote:${crypto.createHash('sha256').update(JSON.stringify(identity)).digest('hex')}`;
+  }
   if (config.model === 'mock') return 'mock';
   return `local:${config.modelPath}`;
 }

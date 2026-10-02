@@ -115,4 +115,65 @@ describe('config', () => {
     const saved = JSON.parse(fs.readFileSync(target, 'utf8'));
     expect(saved.cachePath).toBeUndefined();
   });
+
+  it('does not save runtime API keys or mutate the active config', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-config-key-'));
+    const target = path.join(dir, 'duplicalis.config.json');
+    const config = loadConfig({
+      root: dir,
+      remote: { apiKey: 'runtime-test-key', model: 'selected-model', timeoutMs: 2500 },
+    });
+    saveConfigFile(config, target);
+    const saved = JSON.parse(fs.readFileSync(target, 'utf8'));
+    expect(saved.remote).not.toHaveProperty('apiKey');
+    expect(saved.remote.model).toBe('selected-model');
+    expect(saved.remote.timeoutMs).toBe(2500);
+    expect(config.remote.apiKey).toBe('runtime-test-key');
+  });
+
+  it('preserves only the API key already in the destination config', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-config-key-'));
+    const target = path.join(dir, 'duplicalis.config.json');
+    fs.writeFileSync(target, JSON.stringify({ remote: { apiKey: 'existing-test-key' } }));
+    const config = loadConfig({ root: dir, remote: { apiKey: 'runtime-test-key', model: 'new' } });
+    saveConfigFile(config, target);
+    const saved = JSON.parse(fs.readFileSync(target, 'utf8'));
+    expect(saved.remote.apiKey).toBe('existing-test-key');
+    expect(saved.remote.model).toBe('new');
+    expect(config.remote.apiKey).toBe('runtime-test-key');
+    expect(loadConfig({ root: dir }).remote.apiKey).toBe('existing-test-key');
+  });
+
+  it('does not copy a source config API key into a new destination', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-config-key-'));
+    const source = path.join(dir, 'private.json');
+    const target = path.join(dir, 'shared.json');
+    fs.writeFileSync(source, JSON.stringify({ remote: { apiKey: 'source-test-key' } }));
+    const config = loadConfig({ root: dir, config: source });
+    saveConfigFile(config, target);
+    expect(JSON.parse(fs.readFileSync(target, 'utf8')).remote).not.toHaveProperty('apiKey');
+    expect(config.remote.apiKey).toBe('source-test-key');
+  });
+
+  it('reloads saved defaults with null optional settings', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-config-roundtrip-'));
+    const target = path.join(dir, 'duplicalis.config.json');
+    saveConfigFile(loadConfig({ root: dir, model: 'mock' }), target);
+    const reloaded = loadConfig({ root: dir });
+    expect(reloaded.model).toBe('mock');
+    expect(reloaded.out).toBeNull();
+    expect(reloaded.limit).toBeNull();
+    expect(reloaded.cachePath).toBe(path.join(dir, '.cache/duplicalis/embeddings.json'));
+  });
+
+  it('saves settings over a JSON null config without copying a runtime key', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'duplicalis-config-null-'));
+    const target = path.join(dir, 'duplicalis.config.json');
+    fs.writeFileSync(target, 'null');
+    const config = loadConfig({ root: dir, model: 'mock', remote: { apiKey: 'runtime-test-key' } });
+    saveConfigFile(config, target);
+    const saved = JSON.parse(fs.readFileSync(target, 'utf8'));
+    expect(saved.model).toBe('mock');
+    expect(saved.remote).not.toHaveProperty('apiKey');
+  });
 });
