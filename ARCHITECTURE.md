@@ -57,7 +57,8 @@ This file is the fuller architecture reference for people working on `duplicalis
 ### CLI + Config
 
 - Parses user flags
-- Loads environment variables and config files
+- Loads `.env` through the CLI-only bootstrap before initializing configuration defaults
+- Loads config files and applies CLI overrides
 - Chooses scan mode or benchmark mode
 
 ### Analysis Core

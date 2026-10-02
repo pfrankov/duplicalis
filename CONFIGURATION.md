@@ -2,6 +2,10 @@
 
 `duplicalis` can be configured with CLI flags, environment variables, or `duplicalis.config.json`.
 
+The CLI loads `.env` from the directory where you run the command before reading its defaults.
+For model and remote API settings, precedence is: CLI flags, config file, existing environment
+variables, `.env`, then built-in defaults. Importing the library alone does not load `.env`.
+
 ## Common Flags
 
 | Flag                   | Description                                                    | Default                      |

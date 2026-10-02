@@ -160,6 +160,9 @@ npx duplicalis scan . --compare "src/features/**/*.{ts,tsx}"
 
 ### 3. Use a Remote Model
 
+You can also put these variables in a `.env` file in the directory where you run the command.
+Variables already set in your shell take priority over `.env`.
+
 ```bash
 export MODEL=remote
 export API_URL=https://openrouter.ai/api/v1/embeddings
