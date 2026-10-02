@@ -38,9 +38,9 @@ describe('cache', () => {
 
   it('builds model key and fingerprints representations', () => {
     const cfg = loadConfig({ model: 'remote', remote: { model: 'm' } });
-    expect(modelKey(cfg)).toContain('remote:m');
+    expect(modelKey(cfg)).toMatch(/^remote:[a-f0-9]{64}$/);
     const cfgNoModel = loadConfig({ model: 'remote', remote: { model: '' } });
-    expect(modelKey(cfgNoModel)).toBe('remote:');
+    expect(modelKey(cfgNoModel)).not.toBe(modelKey(cfg));
     expect(modelKey(loadConfig({ model: 'local', modelPath: 'x' }))).toBe('local:x');
     expect(modelKey(loadConfig({ model: 'mock' }))).toBe('mock');
     const fp = fingerprintRepresentation('code', 'style', 'css');

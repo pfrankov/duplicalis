@@ -308,6 +308,29 @@ describe('cli', () => {
     );
     expect(output).toBe('ok');
   });
+
+  it.each(['environment', 'flag'])('does not persist an API key from the %s', (source) => {
+    const root = createCliFixture();
+    const key = 'runtime-only-test-key';
+    const args = [
+      path.resolve('bin/duplicalis.js'),
+      'scan',
+      root,
+      '--model',
+      'mock',
+      '--no-progress',
+      '--save-config',
+    ];
+    if (source === 'flag') args.push('--api-key', key);
+    execFileSync(process.execPath, args, {
+      cwd: root,
+      env: { ...process.env, API_KEY: source === 'environment' ? key : '' },
+      encoding: 'utf8',
+    });
+    const saved = fs.readFileSync(path.join(root, 'duplicalis.config.json'), 'utf8');
+    expect(saved).not.toContain(key);
+    expect(JSON.parse(saved).remote).not.toHaveProperty('apiKey');
+  });
 });
 
 function createCliFixture(config = {}) {

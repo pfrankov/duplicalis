@@ -159,7 +159,10 @@ function stripUndefined(value) {
   return Object.entries(value).reduce((acc, [key, val]) => {
     if (val === undefined) return acc;
     const cleaned = stripUndefined(val);
-    if (cleaned !== undefined && (typeof cleaned !== 'object' || Object.keys(cleaned).length > 0)) {
+    if (
+      cleaned !== undefined &&
+      (cleaned === null || typeof cleaned !== 'object' || Object.keys(cleaned).length > 0)
+    ) {
       acc[key] = cleaned;
     }
     return acc;
@@ -170,6 +173,9 @@ export function saveConfigFile(config, targetPath) {
   const resolvedPath = path.resolve(targetPath);
   const existing = stripUndefined(readConfigFile(resolvedPath));
   const merged = mergeObjects(existing, pickSavable(config));
+  if (merged.remote) {
+    merged.remote = { ...merged.remote, apiKey: existing?.remote?.apiKey };
+  }
   writeFileAtomicSync(resolvedPath, `${JSON.stringify(merged, null, 2)}\n`, 'utf8');
   return resolvedPath;
 }

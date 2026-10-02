@@ -180,6 +180,9 @@ npx duplicalis scan --no-progress --out report.json
 npx duplicalis scan --threshold 0.9 --exclude "**/*.test.tsx" --save-config
 ```
 
+Saving defaults does not copy API keys from the environment, CLI, or another config file.
+An API key already in the destination config is preserved. Prefer `API_KEY` for credentials.
+
 ---
 
 _Built for cleaner, more maintainable React codebases._

@@ -88,6 +88,12 @@ Saved configs intentionally omit:
 
 That keeps the file portable across machines and worktrees.
 
+Saving settings does not copy `remote.apiKey` from the environment, CLI, or another config file.
+If the destination file already contains an API key, that value is preserved without being
+overwritten by the current run's key. The active run keeps using its resolved credentials.
+Prefer `API_KEY` for credentials and keep keys out of version control
+([API key safety](https://help.openai.com/en/articles/5112595-best-practices-for-api-key-safety)).
+
 ## Caching
 
 - Embeddings are cached in `.cache/duplicalis/embeddings.json`
@@ -95,3 +101,9 @@ That keeps the file portable across machines and worktrees.
 
 Within one run, identical component representations are memoized before hitting the embedding
 backend.
+
+Remote cache entries are scoped to both the normalized endpoint and model. The cache stores a
+hash of this identity rather than the endpoint URL, which may contain private query parameters.
+Changing only the API key or timeout does not invalidate embeddings. Legacy remote entries without
+an endpoint identity are not reused, so the first remote scan after upgrading recomputes embeddings
+and may incur API charges. Local and mock caches are unchanged.
