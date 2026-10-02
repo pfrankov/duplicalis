@@ -58,9 +58,10 @@ function buildContext(code, filePath, config, ast) {
     filePath,
     styleExtensions: config.styleExtensions || [],
     allowIgnores: Boolean(config.allowIgnores),
-    lines: config.allowIgnores ? code.split('\n') : null,
+    lines: config.allowIgnores ? code.split(/\r\n|[\n\r\u2028\u2029]/) : null,
     lineStarts: buildLineStarts(code),
-    spanOffset: resolveSpanOffset(ast),
+    charOffsets: buildCharOffsets(code),
+    spanOffset: resolveSpanOffset(ast, code),
     styleImports: [],
   };
 }
@@ -181,7 +182,7 @@ function buildComponent(node, name, context) {
     id: `${context.filePath}#${name}`,
     name,
     filePath: context.filePath,
-    loc: spanToLoc(node.span, context.code.length, context.lineStarts, context.spanOffset),
+    loc: spanToLoc(node.span, context),
     props: extractProps(node),
     hooks: [],
     logicTokens: [],
@@ -194,7 +195,7 @@ function buildComponent(node, name, context) {
     returnsCount: 0,
     styleImports: context.styleImports,
     isWrapper: false,
-    source: sliceSource(node.span, context.code, context.spanOffset),
+    source: sliceSource(node.span, context),
   };
 
   seedRootLogicToken(meta, node);
@@ -471,7 +472,7 @@ function resolveImportPath(fromFile, importPath) {
 
 function isIgnoredNode(node, context) {
   if (!context.allowIgnores || !node?.span || !context.lines) return false;
-  const loc = spanToLoc(node.span, context.code.length, context.lineStarts, context.spanOffset);
+  const loc = spanToLoc(node.span, context);
   /* v8 ignore next */
   if (!loc) return false;
   const startIndex = loc.start.line - 1;
@@ -481,49 +482,65 @@ function isIgnoredNode(node, context) {
   return false;
 }
 
-function sliceSource(span, code, spanOffset = 0) {
+function sliceSource(span, context) {
   /* v8 ignore next */
   if (!span) return '';
-  const start = clampOffset(normalizeSpanValue(span.start, spanOffset) - 1, code.length);
-  const end = clampOffset(normalizeSpanValue(span.end, spanOffset) - 1, code.length);
-  return code.slice(start, Math.max(start, end));
+  const start = sourceOffset(span.start, context);
+  const end = sourceOffset(span.end, context);
+  return context.code.slice(start, Math.max(start, end));
 }
 
-function spanToLoc(span, length, lineStarts, spanOffset = 0) {
+function spanToLoc(span, context) {
   /* v8 ignore next */
   if (!span) return null;
   return {
-    start: offsetToLoc(
-      clampOffset(normalizeSpanValue(span.start, spanOffset) - 1, length),
-      lineStarts
-    ),
-    end: offsetToLoc(clampOffset(normalizeSpanValue(span.end, spanOffset) - 1, length), lineStarts),
+    start: offsetToLoc(sourceOffset(span.start, context), context.lineStarts),
+    end: offsetToLoc(sourceOffset(span.end, context), context.lineStarts),
   };
+}
+
+function sourceOffset(value, { code, spanOffset, charOffsets }) {
+  const byteOffset = value - spanOffset;
+  const index = findOffsetIndex(byteOffset, charOffsets.bytes);
+  return clampOffset(byteOffset - charOffsets.deltas[index], code.length);
+}
+
+function buildCharOffsets(code) {
+  // Index cumulative UTF-8/UTF-16 differences once, not once per component.
+  const bytes = [0];
+  const deltas = [0];
+  let delta = 0;
+  for (const match of code.matchAll(/[\u0080-\u{10ffff}]/gu)) {
+    delta += Buffer.byteLength(match[0]) - match[0].length;
+    bytes.push(match.index + match[0].length + delta);
+    deltas.push(delta);
+  }
+  return { bytes, deltas };
 }
 
 function buildLineStarts(code) {
   const starts = [0];
-  for (let i = 0; i < code.length; i += 1) {
-    if (code.charCodeAt(i) === 10) starts.push(i + 1);
+  for (const match of code.matchAll(/\r\n|[\n\r\u2028\u2029]/g)) {
+    starts.push(match.index + match[0].length);
   }
   return starts;
 }
 
 function offsetToLoc(offset, lineStarts) {
-  const lineIndex = findLineIndex(offset, lineStarts);
+  const lineIndex = findOffsetIndex(offset, lineStarts);
   return {
     line: lineIndex + 1,
     column: offset - lineStarts[lineIndex],
   };
 }
 
-function findLineIndex(offset, lineStarts) {
+function findOffsetIndex(offset, starts) {
   let low = 0;
-  let high = lineStarts.length - 1;
+  let high = starts.length - 1;
 
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
-    if (lineStarts[mid] <= offset) {
+    if (starts[mid] <= offset) {
       low = mid + 1;
     } else {
       high = mid - 1;
@@ -537,11 +554,9 @@ function clampOffset(offset, length) {
   return Math.max(0, Math.min(length, offset));
 }
 
-function resolveSpanOffset(ast) {
-  /* v8 ignore next */
-  return Math.max(0, (ast?.span?.start || 1) - 1);
-}
-
-function normalizeSpanValue(value, spanOffset) {
-  return Math.max(1, value - spanOffset);
+function resolveSpanOffset(ast, code) {
+  // SWC spans are global UTF-8 byte offsets. The program starts at its first
+  // token (or shebang), so restore leading trivia, including a stripped BOM.
+  const [trivia] = code.match(/^(?:\s|\/\/[^\r\n\u2028\u2029]*|\/\*[\s\S]*?\*\/)*/);
+  return ast.span.start - Buffer.byteLength(trivia);
 }
