@@ -55,7 +55,7 @@ function createEndpointProfile(input) {
   };
 }
 
-function normalizeRemoteUrl(input) {
+export function normalizeRemoteUrl(input) {
   const url = new URL(input || DEFAULT_REMOTE_URL);
   const pathname = url.pathname.replace(/\/+$/, '') || '/';
   if (pathname === '/') {

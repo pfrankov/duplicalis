@@ -56,6 +56,7 @@ The tool labels similarity matches with specific duplication classes:
 - **Cache cleanup is file-aware**: Cache entries keep the originating file path; cleanup removes only entries whose source files are gone and tolerates malformed cache keys.
 - **Style reads are memoized per run**: Stylesheets are read once per absolute path to keep scans fast when many components share the same CSS.
 - **Embedding work is memoized per run**: Identical component representations reuse the same in-memory embedding request within a single scan, reducing duplicate backend work before cache persistence.
+- **Remote embedding caches are endpoint-specific**: Cache identity hashes the normalized endpoint and model without storing the raw URL. Legacy endpoint-less remote entries are recomputed; local and mock cache identities stay unchanged.
 - **Bundled benchmark suite**: `benchmark` reuses the same component-analysis pipeline on a curated suite of positive pairs and hard negatives so embedding comparisons stay grounded in duplicate detection, not generic retrieval.
 - **Benchmark metrics separate raw ranking from reported output**: AP/MRR/Recall@K and separation gap (`min positive - max hard negative`) score the raw embedding space, while best-F1 threshold and hard-negative false positives are measured through the real similarity pipeline after suppression rules.
 - **Benchmark score balances threshold and ranking metrics**: The composite score weights F1 at 45%, AP at 30%, and hard-negative precision at 25% to avoid cliff effects on small test sets where a single pair crossing a threshold can swing F1 disproportionately.
@@ -113,6 +114,7 @@ The tool labels similarity matches with specific duplication classes:
 - Output language is set via `--lang` or `language` in `duplicalis.config.json` (`en`, `ru`, `es`, `fr`, `de`, `zh`).
 - Models are auto-downloaded when missing (`AUTO_DOWNLOAD_MODEL` true by default) and the download is memoized per process. When disabling auto-download, make sure a usable ONNX file lives under `<model>/onnx/`.
 - `--save-config` merges resolved run settings into the target config file (defaults to `<root>/duplicalis.config.json`) but intentionally does not persist the resolved `root` or default derived `cachePath`, keeping saved configs portable across machines and worktrees.
+- `--save-config` does not copy runtime API keys into the target file. It preserves only an API key already in that exact destination, without changing the active run's credentials.
 - `benchmark` defaults to the bundled `react-component-duplicates-v1` suite and the curated shortlist `local`, `text-embedding-3-small`, `text-embedding-3-large`, `gemini-embedding-001`, `qwen3-embedding-8b`, `bge-m3`, `multilingual-e5-large`, and `all-mpnet-base-v2`.
 
 ### Embedding Backend Selection
