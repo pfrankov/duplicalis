@@ -1,13 +1,11 @@
+import './cli-env.js';
 import { Command } from 'commander';
-import dotenv from 'dotenv';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import { loadConfig, resolveConfigPath, saveConfigFile } from './config.js';
 import { getI18n, resolveLanguageFromArgv } from './i18n.js';
 import { run } from './index.js';
 import { runBenchmark } from './benchmark.js';
-
-dotenv.config();
 
 export function createProgram(argv = process.argv) {
   const language = resolveLanguageFromArgv(argv, 'en');
